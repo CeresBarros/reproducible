@@ -10,23 +10,27 @@
 
 
 <!-- jquery -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
 <!-- Bootstrap -->
-<link href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/3.3.7/flatly/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" />
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/3.4.0/flatly/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" />
 
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha256-U5ZEeKfGNOja007MMD3YBI0A3OSZOQbeG6z2f2Y0hu8=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha256-nuL8/2cJ5NDSSwnKD8VqreErSWHtnEP9E7AySL+1ev4=" crossorigin="anonymous"></script>
+
+<!-- bootstrap-toc -->
+<link rel="stylesheet" href="../bootstrap-toc.css">
+<script src="../bootstrap-toc.js"></script>
 
 <!-- Font Awesome icons -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.7.1/css/all.min.css" integrity="sha256-nAmazAk6vS34Xqo0BSrTb+abbtFlgsFK7NKSi6o7Y78=" crossorigin="anonymous" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.7.1/css/v4-shims.min.css" integrity="sha256-6qHlizsOWFskGlwVOKuns+D1nB6ssZrHQrNj1wGplHc=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous" />
 
 <!-- clipboard.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.4/clipboard.min.js" integrity="sha256-FiZwavyI2V6+EXO1U+xzLG3IKldpiTFf3153ea9zikQ=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script>
 
 <!-- headroom.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.9.4/headroom.min.js" integrity="sha256-DJFC1kqIhelURkuza0AvYal5RxMtpzLjFhsnVIeuk+U=" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.9.4/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script>
 
 <!-- pkgdown -->
 <link href="../pkgdown.css" rel="stylesheet">
@@ -37,7 +41,6 @@
 
 <meta property="og:title" content="Take a snapshot of all the packages and version numbers — pkgSnapshot" />
 <meta property="og:description" content="This can be used later by installVersions to install or re-install the correct versions." />
-<meta name="twitter:card" content="summary" />
 
 
 
@@ -65,7 +68,7 @@
 
   </head>
 
-  <body>
+  <body data-spy="scroll" data-target="#toc">
     <div class="container template-reference-topic">
       <header>
       <div class="navbar navbar-default navbar-fixed-top" role="navigation">
@@ -79,7 +82,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">reproducible</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.2.11</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.1.1</span>
       </span>
     </div>
 
@@ -102,6 +105,9 @@
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
+      <a href="../articles/Cache-using-postgresql.html">Using alternate database backends for Cache</a>
+    </li>
+    <li>
       <a href="../articles/Intro-to-Cache.html">Introduction to Cache</a>
     </li>
   </ul>
@@ -112,7 +118,7 @@
       </ul>
       <ul class="nav navbar-nav navbar-right">
         <li>
-  <a href="https://github.com/PredictiveEcology/reproducible">
+  <a href="https://github.com/PredictiveEcology/reproducible/">
     <span class="fab fa fab fa-github fa-lg"></span>
      
   </a>
@@ -174,449 +180,462 @@ This can later be passed to <code>Require</code>.</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><div class='input'><span class='no'>pkgSnapFile</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/tempfile.html'>tempfile</a></span>()
-<span class='fu'>pkgSnapshot</span>(<span class='no'>pkgSnapFile</span>, <span class='fu'><a href='https://rdrr.io/r/base/libPaths.html'>.libPaths</a></span>()[<span class='fl'>1</span>])</div><div class='output co'>#&gt; <span class='message'>There is no /tmp/RtmpEvs1Yv/reproducible/cache/.Require/_tmp_RtmpuMyl9A_temp_libpath41b0757c6080._packageVersionsAuto.txt and standAlone is FALSE. This snapshot will not be accurate because it will include all packages in /tmp/RtmpuMyl9A/temp_libpath41b0757c6080, /home/emcintir/R/x86_64-pc-linux-gnu-library/3.6, /usr/local/lib/R/site-library, /usr/lib/R/site-library, /usr/lib/R/library</span></div><div class='output co'>#&gt;                                instPkgs    instVers
-#&gt; 1             reproducible.reproducible      0.2.11
-#&gt; 2             reproducible.reproducible      0.2.11
-#&gt; 3                           abind.abind       1.4-5
-#&gt; 4                       acepack.acepack       1.4.1
-#&gt; 5                               amc.amc  0.1.5.9000
-#&gt; 6                               amc.amc  0.1.5.9000
-#&gt; 7                           bench.bench       1.0.4
-#&gt; 8                               car.car       3.0-5
-#&gt; 9                       carData.carData       3.0-3
-#&gt; 10                      caTools.caTools    1.17.1.2
-#&gt; 11                cellranger.cellranger       1.1.0
-#&gt; 12                  crancache.crancache  0.0.0.9001
-#&gt; 13                    cranlike.cranlike       1.0.2
-#&gt; 14                data.table.data.table      1.12.6
-#&gt; 15                data.table.data.table      1.12.6
-#&gt; 16                      debugme.debugme       1.1.0
-#&gt; 17                    devtools.devtools       2.2.1
-#&gt; 18                    devtools.devtools       2.2.1
-#&gt; 19                        digest.digest      0.6.22
-#&gt; 20                        digest.digest      0.6.22
-#&gt; 21                    ellipsis.ellipsis       0.3.0
-#&gt; 22                    ellipsis.ellipsis       0.3.0
-#&gt; 23                      fastmap.fastmap       1.0.1
-#&gt; 24                      Finance.Finance         1.0
-#&gt; 25                      forcats.forcats       0.4.0
-#&gt; 26                      Formula.Formula       1.2-3
-#&gt; 27                        future.future      1.15.0
-#&gt; 28                        future.future      1.15.0
-#&gt; 29            future.apply.future.apply       1.3.0
-#&gt; 30            future.callr.future.callr       0.5.0
-#&gt; 31                        gargle.gargle       0.4.0
-#&gt; 32                        gmailr.gmailr       1.0.0
-#&gt; 33                          haven.haven       2.2.0
-#&gt; 34                  highlight.highlight     0.4.7.2
-#&gt; 35                          Hmisc.Hmisc       4.3-0
-#&gt; 36                  htmlTable.htmlTable      1.13.2
-#&gt; 37                        inline.inline      0.3.15
-#&gt; 38                          LandR.LandR  0.0.2.9007
-#&gt; 39                          LandR.LandR  0.0.2.9007
-#&gt; 40                    LandR.CS.LandR.CS  0.0.0.9000
-#&gt; 41            LandWebUtils.LandWebUtils       0.0.2
-#&gt; 42            LandWebUtils.LandWebUtils       0.0.2
-#&gt; 43            latticeExtra.latticeExtra      0.6-28
-#&gt; 44                  lifecycle.lifecycle       0.1.0
-#&gt; 45                      littler.littler       0.3.9
-#&gt; 46                      littler.littler       0.3.9
-#&gt; 47                              map.map       0.0.1
-#&gt; 48                              map.map       0.0.1
-#&gt; 49            MatrixModels.MatrixModels       0.4-1
-#&gt; 50              matrixStats.matrixStats      0.55.0
-#&gt; 51                    NetLogoR.NetLogoR       0.3.5
-#&gt; 52                    openxlsx.openxlsx       4.1.3
-#&gt; 53                      packrat.packrat       0.5.0
-#&gt; 54                  parsedate.parsedate       1.2.0
-#&gt; 55                    pbkrtest.pbkrtest       0.4-7
-#&gt; 56                          pedev.pedev  0.0.1.9005
-#&gt; 57                          pedev.pedev  0.0.1.9005
-#&gt; 58                        pemisc.pemisc  0.0.1.9004
-#&gt; 59                        pemisc.pemisc  0.0.1.9004
-#&gt; 60                      pkgdown.pkgdown       1.4.1
-#&gt; 61                      profmem.profmem       0.5.0
-#&gt; 62                    progress.progress       1.2.2
-#&gt; 63                    quantreg.quantreg        5.52
-#&gt; 64                  quickPlot.quickPlot  0.1.6.9000
-#&gt; 65                  quickPlot.quickPlot  0.1.6.9000
-#&gt; 66                    rappdirs.rappdirs       0.3.1
-#&gt; 67                        readxl.readxl       1.3.1
-#&gt; 68                      rematch.rematch       1.0.1
-#&gt; 69                    rematch2.rematch2       2.1.0
-#&gt; 70            reproducible.reproducible      0.2.11
-#&gt; 71            reproducible.reproducible      0.2.11
-#&gt; 72              revdepcheck.revdepcheck  1.0.0.9001
-#&gt; 73                          rgeos.rgeos       0.5-2
-#&gt; 74                          rgeos.rgeos       0.5-2
-#&gt; 75                              rio.rio      0.5.16
-#&gt; 76                    roxygen2.roxygen2       7.0.0
-#&gt; 77                    roxygen2.roxygen2       7.0.0
-#&gt; 78                  rsconnect.rsconnect      0.8.15
-#&gt; 79                        SpaDES.SpaDES  2.0.4.9000
-#&gt; 80                        SpaDES.SpaDES  2.0.4.9000
-#&gt; 81              SpaDES.core.SpaDES.core  0.2.6.9006
-#&gt; 82              SpaDES.core.SpaDES.core  0.2.6.9006
-#&gt; 83  SpaDES.experiment.SpaDES.experiment  0.0.1.9000
-#&gt; 84            SpaDES.tools.SpaDES.tools  0.3.2.9002
-#&gt; 85            SpaDES.tools.SpaDES.tools  0.3.2.9002
-#&gt; 86                      SparseM.SparseM        1.77
-#&gt; 87                    spelling.spelling         2.1
-#&gt; 88                    testthat.testthat       2.3.0
-#&gt; 89                    testthat.testthat       2.3.0
-#&gt; 90                    testthat.testthat       2.3.0
-#&gt; 91                    TimeWarp.TimeWarp      1.0.15
-#&gt; 92                    TimeWarp.TimeWarp      1.0.15
-#&gt; 93                        whoami.whoami       1.3.0
-#&gt; 94                              zip.zip       2.0.4
-#&gt; 95          alphavantager.alphavantager       0.1.1
-#&gt; 96                              amc.amc  0.1.5.9000
-#&gt; 97                              amc.amc  0.1.5.9000
-#&gt; 98                  animation.animation         2.6
-#&gt; 99                  archivist.archivist       2.3.4
-#&gt; 100                 base64enc.base64enc       0.1-4
-#&gt; 101                 base64enc.base64enc       0.1-4
-#&gt; 102                             bit.bit      1.1-14
-#&gt; 103                         bit64.bit64       0.9-7
-#&gt; 104                           blob.blob       1.2.0
-#&gt; 105                         caret.caret      6.0-84
-#&gt; 106                 checkmate.checkmate       1.9.4
-#&gt; 107                 CircStats.CircStats       0.2-6
-#&gt; 108                   classInt.classInt       0.4-2
-#&gt; 109                           covr.covr       3.3.2
-#&gt; 110               data.table.data.table      1.12.2
-#&gt; 111               data.table.data.table      1.12.2
-#&gt; 112                             DBI.DBI       1.0.0
-#&gt; 113                     DEoptim.DEoptim       2.2-4
-#&gt; 114               DiagrammeR.DiagrammeR       1.0.1
-#&gt; 115                         dismo.dismo       1.1-4
-#&gt; 116               doParallel.doParallel      1.0.15
-#&gt; 117               downloader.downloader         0.4
-#&gt; 118                         e1071.e1071       1.7-2
-#&gt; 119               fastdigest.fastdigest       0.6-3
-#&gt; 120                 fasterize.fasterize       1.0.0
-#&gt; 121                 fastmatch.fastmatch       1.1-0
-#&gt; 122                     fastshp.fastshp       0.1-2
-#&gt; 123                               ff.ff      2.2-14
-#&gt; 124                       ffbase.ffbase      0.12.7
-#&gt; 125                         flock.flock         0.7
-#&gt; 126                     foreach.foreach       1.4.7
-#&gt; 127                   forecast.forecast         8.9
-#&gt; 128                 fpCompare.fpCompare       0.2.3
-#&gt; 129                   fracdiff.fracdiff       1.4-2
-#&gt; 130                       future.future      1.14.0
-#&gt; 131                       future.future      1.14.0
-#&gt; 132                 gdalUtils.gdalUtils    2.0.1.14
-#&gt; 133                   generics.generics       0.0.2
-#&gt; 134                     ggplot2.ggplot2       3.2.1
-#&gt; 135                     ggplot2.ggplot2       3.2.1
-#&gt; 136                           glmm.glmm       1.3.0
-#&gt; 137                     globals.globals      0.12.4
-#&gt; 138             googledrive.googledrive       1.0.0
-#&gt; 139                         gower.gower       0.2.1
-#&gt; 140                   gridBase.gridBase       0.4-7
-#&gt; 141                         highr.highr       0.8.1
-#&gt; 142                         highr.highr       0.8.1
-#&gt; 143                             hms.hms       0.5.2
-#&gt; 144                   hunspell.hunspell         3.0
-#&gt; 145               influenceR.influenceR       0.1.0
-#&gt; 146                         ipred.ipred       0.9-9
-#&gt; 147                 iterators.iterators      1.0.12
-#&gt; 148                 itertools.itertools       0.1-3
-#&gt; 149                         LandR.LandR  0.0.2.9001
-#&gt; 150                         LandR.LandR  0.0.2.9001
-#&gt; 151           LandWebUtils.LandWebUtils       0.0.1
-#&gt; 152           LandWebUtils.LandWebUtils       0.0.1
-#&gt; 153                           lava.lava       1.6.6
-#&gt; 154                     listenv.listenv       0.7.0
-#&gt; 155                       lmtest.lmtest      0.9-37
-#&gt; 156                 lubridate.lubridate       1.7.4
-#&gt; 157                           lucr.lucr       0.2.0
-#&gt; 158                       magick.magick         2.2
-#&gt; 159                             map.map       0.0.1
-#&gt; 160                             map.map       0.0.1
-#&gt; 161                   maptools.maptools       0.9-8
-#&gt; 162       microbenchmark.microbenchmark       1.4-7
-#&gt; 163                           mime.mime         0.7
-#&gt; 164                           mime.mime         0.7
-#&gt; 165           ModelMetrics.ModelMetrics       1.2.2
-#&gt; 166                         MuMIn.MuMIn      1.43.8
-#&gt; 167                     mvtnorm.mvtnorm      1.0-11
-#&gt; 168                   numDeriv.numDeriv  2016.8-1.1
-#&gt; 169                           padr.padr       0.5.0
-#&gt; 170                         pedev.pedev  0.0.1.9005
-#&gt; 171                         pedev.pedev  0.0.1.9005
-#&gt; 172                       pemisc.pemisc  0.0.1.9003
-#&gt; 173                       pemisc.pemisc  0.0.1.9003
-#&gt; 174                       praise.praise       1.0.0
-#&gt; 175                       praise.praise       1.0.0
-#&gt; 176                     prodlim.prodlim  2019.10.13
-#&gt; 177                     profvis.profvis       0.3.6
-#&gt; 178                           pryr.pryr       0.1.4
-#&gt; 179                   quadprog.quadprog       1.5-7
-#&gt; 180                   quantmod.quantmod      0.4-15
-#&gt; 181                 quickPlot.quickPlot  0.1.6.9000
-#&gt; 182                 quickPlot.quickPlot  0.1.6.9000
-#&gt; 183             R.methodsS3.R.methodsS3       1.7.1
-#&gt; 184                           R.oo.R.oo      1.23.0
-#&gt; 185                     R.utils.R.utils       2.9.0
-#&gt; 186         RcppArmadillo.RcppArmadillo 0.9.800.1.0
-#&gt; 187                   RcppRoll.RcppRoll       0.3.0
-#&gt; 188                         RCurl.RCurl   1.95-4.12
-#&gt; 189                         readr.readr       1.3.1
-#&gt; 190                     recipes.recipes       0.1.7
-#&gt; 191                     remotes.remotes       2.1.0
-#&gt; 192                     remotes.remotes       2.1.0
-#&gt; 193                             rex.rex       1.1.2
-#&gt; 194                         rgdal.rgdal       1.4-7
-#&gt; 195                     rgenoud.rgenoud     5.8-3.0
-#&gt; 196                         rgeos.rgeos       0.4-3
-#&gt; 197                         rgeos.rgeos       0.4-3
-#&gt; 198                         rgexf.rgexf      0.15.3
-#&gt; 199                 rmarkdown.rmarkdown        1.17
-#&gt; 200                           Rook.Rook       1.1-1
-#&gt; 201                 rprojroot.rprojroot       1.3-2
-#&gt; 202                 rprojroot.rprojroot       1.3-2
-#&gt; 203                     RSQLite.RSQLite       2.1.2
-#&gt; 204                           scam.scam       1.2-5
-#&gt; 205                               sf.sf       0.8-0
-#&gt; 206                       SpaDES.SpaDES       2.0.3
-#&gt; 207                       SpaDES.SpaDES       2.0.3
-#&gt; 208         SpaDES.addins.SpaDES.addins       0.1.2
-#&gt; 209             SpaDES.core.SpaDES.core  0.2.5.9007
-#&gt; 210             SpaDES.core.SpaDES.core  0.2.5.9007
-#&gt; 211           SpaDES.tools.SpaDES.tools  0.3.2.9001
-#&gt; 212           SpaDES.tools.SpaDES.tools  0.3.2.9001
-#&gt; 213                     SQUAREM.SQUAREM   2017.10-1
-#&gt; 214                   testthat.testthat       2.1.1
-#&gt; 215                   testthat.testthat       2.1.1
-#&gt; 216                   testthat.testthat       2.1.1
-#&gt; 217                       tibble.tibble       2.1.3
-#&gt; 218                       tibble.tibble       2.1.3
-#&gt; 219                         tiler.tiler       0.2.1
-#&gt; 220                   timeDate.timeDate    3043.102
-#&gt; 221                       timetk.timetk       0.1.2
-#&gt; 222                   TimeWarp.TimeWarp      1.0.15
-#&gt; 223                   TimeWarp.TimeWarp      1.0.15
-#&gt; 224                     tinytex.tinytex        0.17
-#&gt; 225                         trust.trust       0.1-7
-#&gt; 226                     tseries.tseries     0.10-47
-#&gt; 227                             TTR.TTR      0.23-5
-#&gt; 228                         units.units       0.6-5
-#&gt; 229                           urca.urca       1.3-0
-#&gt; 230                           uuid.uuid       0.1-2
-#&gt; 231                   versions.versions         0.3
-#&gt; 232                           VGAM.VGAM       1.1-1
-#&gt; 233               visNetwork.visNetwork       2.0.8
-#&gt; 234                     xgboost.xgboost    0.90.0.2
-#&gt; 235                             XML.XML   3.98-1.20
-#&gt; 236                       xtable.xtable       1.8-4
-#&gt; 237                       xtable.xtable       1.8-4
-#&gt; 238                     askpass.askpass         1.1
-#&gt; 239               assertthat.assertthat       0.2.1
-#&gt; 240                 backports.backports       1.1.5
-#&gt; 241                 base64enc.base64enc       0.1-3
-#&gt; 242                 base64enc.base64enc       0.1-3
-#&gt; 243                               BH.BH    1.69.0-1
-#&gt; 244                       bitops.bitops       1.0-6
-#&gt; 245                           brew.brew       1.0-6
-#&gt; 246                         callr.callr       3.3.2
-#&gt; 247                             cli.cli       1.1.0
-#&gt; 248                         clipr.clipr       0.7.0
-#&gt; 249               clisymbols.clisymbols       1.2.0
-#&gt; 250                           coda.coda      0.19-3
-#&gt; 251               colorspace.colorspace       1.4-1
-#&gt; 252               commonmark.commonmark         1.7
-#&gt; 253                       crayon.crayon       1.3.4
-#&gt; 254                 crosstalk.crosstalk       1.0.0
-#&gt; 255                           curl.curl         4.2
-#&gt; 256                           desc.desc       1.2.0
-#&gt; 257                   devtools.devtools       2.1.0
-#&gt; 258                   devtools.devtools       2.1.0
-#&gt; 259                       digest.digest      0.6.21
-#&gt; 260                       digest.digest      0.6.21
-#&gt; 261                         dplyr.dplyr       0.8.3
-#&gt; 262                               DT.DT        0.10
-#&gt; 263                   ellipsis.ellipsis     0.2.0.1
-#&gt; 264                   ellipsis.ellipsis     0.2.0.1
-#&gt; 265                   evaluate.evaluate        0.14
-#&gt; 266                         fansi.fansi       0.4.0
-#&gt; 267                             FNN.FNN       1.1.3
-#&gt; 268                               fs.fs       1.3.1
-#&gt; 269                     gdtools.gdtools       0.2.1
-#&gt; 270                           geoR.geoR   1.7-5.2.1
-#&gt; 271                         ggmap.ggmap       3.0.0
-#&gt; 272                     ggplot2.ggplot2       3.2.1
-#&gt; 273                     ggplot2.ggplot2       3.2.1
-#&gt; 274                               gh.gh       1.0.1
-#&gt; 275                         git2r.git2r      0.26.1
-#&gt; 276                           glue.glue       1.3.1
-#&gt; 277                 gridExtra.gridExtra         2.3
-#&gt; 278                         gstat.gstat       2.0-3
-#&gt; 279                       gtable.gtable       0.3.0
-#&gt; 280                         highr.highr         0.8
-#&gt; 281                         highr.highr         0.8
-#&gt; 282                 htmltools.htmltools       0.4.0
-#&gt; 283             htmlwidgets.htmlwidgets       1.5.1
-#&gt; 284                       httpuv.httpuv       1.5.2
-#&gt; 285                           httr.httr       1.4.1
-#&gt; 286                       igraph.igraph     1.2.4.1
-#&gt; 287                             ini.ini       0.3.1
-#&gt; 288                 intervals.intervals      0.15.1
-#&gt; 289                           jpeg.jpeg     0.1-8.1
-#&gt; 290                   jsonlite.jsonlite         1.6
-#&gt; 291                         knitr.knitr        1.26
-#&gt; 292                   labeling.labeling         0.3
-#&gt; 293                         later.later       1.0.0
-#&gt; 294                   lazyeval.lazyeval       0.2.2
-#&gt; 295                     leaflet.leaflet       2.0.3
-#&gt; 296 leaflet.providers.leaflet.providers       1.9.0
-#&gt; 297                     littler.littler       0.3.8
-#&gt; 298                     littler.littler       0.3.8
-#&gt; 299                           lme4.lme4      1.1-21
-#&gt; 300                   magrittr.magrittr         1.5
-#&gt; 301   manipulateWidget.manipulateWidget      0.10.0
-#&gt; 302                     mapdata.mapdata       2.3.0
-#&gt; 303                           maps.maps       3.3.0
-#&gt; 304                   markdown.markdown         1.1
-#&gt; 305                     memoise.memoise       1.1.0
-#&gt; 306                           mime.mime         0.7
-#&gt; 307                           mime.mime         0.7
-#&gt; 308                       miniUI.miniUI     0.1.1.1
-#&gt; 309                         minqa.minqa       1.2.4
-#&gt; 310                     munsell.munsell       0.5.0
-#&gt; 311                         ncdf4.ncdf4        1.17
-#&gt; 312                       nloptr.nloptr       1.2.1
-#&gt; 313                     openssl.openssl       1.4.1
-#&gt; 314                       pillar.pillar       1.4.2
-#&gt; 315                   pkgbuild.pkgbuild       1.0.6
-#&gt; 316                 pkgconfig.pkgconfig       2.0.3
-#&gt; 317                 pkgKitten.pkgKitten       0.1.5
-#&gt; 318                     pkgload.pkgload       1.0.2
-#&gt; 319                         plogr.plogr       0.2.0
-#&gt; 320                           plyr.plyr       1.8.4
-#&gt; 321                             png.png       0.1-7
-#&gt; 322                       praise.praise       1.0.0
-#&gt; 323                       praise.praise       1.0.0
-#&gt; 324             prettyunits.prettyunits       1.0.2
-#&gt; 325                   processx.processx       3.4.1
-#&gt; 326                   promises.promises       1.1.0
-#&gt; 327                               ps.ps       1.3.0
-#&gt; 328                         purrr.purrr       0.3.3
-#&gt; 329                               R6.R6       2.4.1
-#&gt; 330           RandomFields.RandomFields       3.3.6
-#&gt; 331 RandomFieldsUtils.RandomFieldsUtils       0.5.3
-#&gt; 332                       raster.raster       3.0-7
-#&gt; 333                 rcmdcheck.rcmdcheck       1.3.3
-#&gt; 334           RColorBrewer.RColorBrewer       1.1-2
-#&gt; 335                           Rcpp.Rcpp       1.0.3
-#&gt; 336                 RcppEigen.RcppEigen   0.3.3.7.0
-#&gt; 337                     remotes.remotes       2.1.0
-#&gt; 338                     remotes.remotes       2.1.0
-#&gt; 339                   reshape2.reshape2       1.4.3
-#&gt; 340                             rgl.rgl    0.100.30
-#&gt; 341             RgoogleMaps.RgoogleMaps       1.4.4
-#&gt; 342                         rjags.rjags        4-10
-#&gt; 343                         rJava.rJava      0.9-11
-#&gt; 344                         rjson.rjson      0.2.20
-#&gt; 345                         rlang.rlang       0.4.1
-#&gt; 346                   roxygen2.roxygen2       7.0.0
-#&gt; 347                   roxygen2.roxygen2       7.0.0
-#&gt; 348                 rprojroot.rprojroot         1.2
-#&gt; 349                 rprojroot.rprojroot         1.2
-#&gt; 350               rstudioapi.rstudioapi        0.10
-#&gt; 351                 rversions.rversions       2.0.0
-#&gt; 352                       scales.scales       1.0.0
-#&gt; 353             sessioninfo.sessioninfo       1.1.1
-#&gt; 354                         shiny.shiny       1.4.0
-#&gt; 355                           snow.snow       0.4-3
-#&gt; 356             sourcetools.sourcetools       0.1.7
-#&gt; 357                               sp.sp       1.3-2
-#&gt; 358                 spacetime.spacetime       1.2-2
-#&gt; 359                     splancs.splancs     2.01-40
-#&gt; 360                     stringi.stringi       1.4.3
-#&gt; 361                     stringr.stringr       1.4.0
-#&gt; 362                     svglite.svglite       1.2.2
-#&gt; 363                             sys.sys         3.3
-#&gt; 364             systemfonts.systemfonts       0.1.1
-#&gt; 365                   testthat.testthat       2.2.1
-#&gt; 366                   testthat.testthat       2.2.1
-#&gt; 367                   testthat.testthat       2.2.1
-#&gt; 368                       tibble.tibble       2.1.3
-#&gt; 369                       tibble.tibble       2.1.3
-#&gt; 370                         tidyr.tidyr       1.0.0
-#&gt; 371               tidyselect.tidyselect       0.2.5
-#&gt; 372                     tkrplot.tkrplot      0.0-24
-#&gt; 373                     usethis.usethis       1.5.1
-#&gt; 374                           utf8.utf8       1.1.4
-#&gt; 375                         vctrs.vctrs       0.2.0
-#&gt; 376                     viridis.viridis       0.5.1
-#&gt; 377             viridisLite.viridisLite       0.3.0
-#&gt; 378                     webshot.webshot       0.5.1
-#&gt; 379                     whisker.whisker         0.4
-#&gt; 380                         withr.withr       2.1.2
-#&gt; 381                           xfun.xfun        0.11
-#&gt; 382                           xlsx.xlsx       0.6.1
-#&gt; 383                   xlsxjars.xlsxjars       0.6.1
-#&gt; 384                           xml2.xml2       1.2.2
-#&gt; 385                         xopen.xopen       1.0.0
-#&gt; 386                       xtable.xtable       1.8-3
-#&gt; 387                       xtable.xtable       1.8-3
-#&gt; 388                             xts.xts      0.11-2
-#&gt; 389                           yaml.yaml       2.2.0
-#&gt; 390                     zeallot.zeallot       0.1.0
-#&gt; 391                             zoo.zoo       1.8-6
-#&gt; 392                           base.base       3.6.1
-#&gt; 393                           boot.boot      1.3-23
-#&gt; 394                         class.class      7.3-15
-#&gt; 395                     cluster.cluster       2.1.0
-#&gt; 396                 codetools.codetools      0.2-16
-#&gt; 397                   compiler.compiler       3.6.1
-#&gt; 398                   datasets.datasets       3.6.1
-#&gt; 399                     foreign.foreign      0.8-72
-#&gt; 400                   graphics.graphics       3.6.1
-#&gt; 401                 grDevices.grDevices       3.6.1
-#&gt; 402                           grid.grid       3.6.1
-#&gt; 403               KernSmooth.KernSmooth     2.23-16
-#&gt; 404                     lattice.lattice     0.20-38
-#&gt; 405                           MASS.MASS    7.3-51.4
-#&gt; 406                       Matrix.Matrix      1.2-17
-#&gt; 407                     methods.methods       3.6.1
-#&gt; 408                           mgcv.mgcv      1.8-31
-#&gt; 409                           nlme.nlme     3.1-142
-#&gt; 410                           nnet.nnet      7.3-12
-#&gt; 411                   parallel.parallel       3.6.1
-#&gt; 412                         rpart.rpart      4.1-15
-#&gt; 413                     spatial.spatial      7.3-11
-#&gt; 414                     splines.splines       3.6.1
-#&gt; 415                         stats.stats       3.6.1
-#&gt; 416                       stats4.stats4       3.6.1
-#&gt; 417                   survival.survival       3.1-7
-#&gt; 418                         tcltk.tcltk       3.6.1
-#&gt; 419                         tools.tools       3.6.1
-#&gt; 420           translations.translations       3.6.1
-#&gt; 421                         utils.utils       3.6.1</div><div class='input'><span class='kw pkg'>data.table</span><span class='kw ns'>::</span><span class='fu'><a href='https://Rdatatable.gitlab.io/data.table/reference/fread.html'>fread</a></span>(<span class='no'>pkgSnapFile</span>)</div><div class='output co'>#&gt;                       instPkgs   instVers
-#&gt;   1: reproducible.reproducible     0.2.11
-#&gt;   2: reproducible.reproducible     0.2.11
-#&gt;   3:               abind.abind      1.4-5
-#&gt;   4:           acepack.acepack      1.4.1
-#&gt;   5:                   amc.amc 0.1.5.9000
-#&gt;  ---                                     
-#&gt; 417:         survival.survival      3.1-7
-#&gt; 418:               tcltk.tcltk      3.6.1
-#&gt; 419:               tools.tools      3.6.1
-#&gt; 420: translations.translations      3.6.1
-#&gt; 421:               utils.utils      3.6.1</div><div class='input'>
+<span class='fu'>pkgSnapshot</span>(<span class='no'>pkgSnapFile</span>, <span class='fu'><a href='https://rdrr.io/r/base/libPaths.html'>.libPaths</a></span>()[<span class='fl'>1</span>])</div><div class='output co'>#&gt; <span class='message'>There is no /tmp/RtmpXMlGMn/reproducible/cache/.Require/_tmp_RtmpBVXgYu_temp_libpath148974c3af400._packageVersionsAuto.txt and standAlone is FALSE. This snapshot will not be accurate because it will include all packages in /tmp/RtmpBVXgYu/temp_libpath148974c3af400, /home/achubaty/R/x86_64-pc-linux-gnu-library/3.6, /usr/local/lib/R/site-library, /usr/lib/R/site-library, /usr/lib/R/library</span></div><div class='output co'>#&gt;              instPkgs    instVers
+#&gt; 1        reproducible       1.1.1
+#&gt; 2        reproducible       1.1.1
+#&gt; 3               abind       1.4-5
+#&gt; 4             acepack       1.4.1
+#&gt; 5                 amc  0.1.6.9000
+#&gt; 6           animation         2.6
+#&gt; 7                 ape         5.3
+#&gt; 8                 aqp        1.19
+#&gt; 9           archivist       2.3.4
+#&gt; 10                arm      1.11-1
+#&gt; 11            askpass         1.1
+#&gt; 12         assertthat       0.2.1
+#&gt; 13          available       1.0.4
+#&gt; 14          backports       1.1.7
+#&gt; 15          base64enc       0.1-4
+#&gt; 16         bayestestR       0.6.0
+#&gt; 17           beanplot         1.2
+#&gt; 18                 BH    1.72.0-3
+#&gt; 19       BiocGenerics      0.32.0
+#&gt; 20        BiocManager     1.30.10
+#&gt; 21        BiocVersion      3.10.1
+#&gt; 22                bit    1.1-15.2
+#&gt; 23              bit64       0.9-7
+#&gt; 24             bitops       1.0-6
+#&gt; 25               blme       1.0-4
+#&gt; 26               blob       1.2.1
+#&gt; 27               brew       1.0-6
+#&gt; 28              broom       0.5.6
+#&gt; 29              callr       3.4.3
+#&gt; 30                car       3.0-7
+#&gt; 31            carData       3.0-3
+#&gt; 32         cellranger       1.1.0
+#&gt; 33          checkmate       2.0.0
+#&gt; 34          CircStats       0.2-6
+#&gt; 35           classInt       0.4-3
+#&gt; 36                cli       2.0.2
+#&gt; 37              clipr       0.7.0
+#&gt; 38         clisymbols       1.2.0
+#&gt; 39               coda      0.19-3
+#&gt; 40        CodeDepends       0.6.5
+#&gt; 41         colorRamps         2.3
+#&gt; 42         colorspace       1.4-1
+#&gt; 43         commonmark         1.7
+#&gt; 44             config         0.3
+#&gt; 45               covr       3.5.0
+#&gt; 46            cowplot       1.0.0
+#&gt; 47          crancache  0.0.0.9001
+#&gt; 48           cranlike       1.0.2
+#&gt; 49             crayon  1.3.4.9000
+#&gt; 50          crosstalk     1.1.0.1
+#&gt; 51               crul       0.9.0
+#&gt; 52               curl         4.3
+#&gt; 53          cyclocomp       1.1.0
+#&gt; 54         data.table      1.12.8
+#&gt; 55                DBI       1.1.0
+#&gt; 56            debugme       1.1.0
+#&gt; 57             deldir      0.1-25
+#&gt; 58            DEoptim       2.2-5
+#&gt; 59               desc       1.2.0
+#&gt; 60           devtools       2.3.0
+#&gt; 61         DiagrammeR     1.0.6.1
+#&gt; 62      DiagrammeRsvg         0.1
+#&gt; 63             digest      0.6.25
+#&gt; 64              dismo       1.1-4
+#&gt; 65         doParallel      1.0.15
+#&gt; 66          dotCall64       1.0-0
+#&gt; 67         downloader         0.4
+#&gt; 68              dplyr       0.8.5
+#&gt; 69                 DT        0.13
+#&gt; 70              e1071       1.7-3
+#&gt; 71            effsize       0.8.0
+#&gt; 72           ellipsis       0.3.1
+#&gt; 73           EnvStats       2.3.1
+#&gt; 74           evaluate      0.14.1
+#&gt; 75      exactextractr       0.3.0
+#&gt; 76               expm     0.999-4
+#&gt; 77              fansi       0.4.1
+#&gt; 78             farver       2.0.3
+#&gt; 79         fastdigest       0.6-3
+#&gt; 80          fasterize       1.0.2
+#&gt; 81            fastmap       1.0.1
+#&gt; 82          fastmatch       1.1-1
+#&gt; 83            fastshp       0.1-2
+#&gt; 84            fBasics   3042.89.1
+#&gt; 85                 ff    2.2-14.2
+#&gt; 86             ffbase      0.12.8
+#&gt; 87             fields        10.3
+#&gt; 88     fireSenseUtils  0.0.0.9025
+#&gt; 89              flock         0.7
+#&gt; 90                FNN       1.1.3
+#&gt; 91            forcats       0.5.0
+#&gt; 92            foreach       1.5.0
+#&gt; 93            Formula       1.2-3
+#&gt; 94          fpCompare       0.2.3
+#&gt; 95                 fs       1.4.1
+#&gt; 96             future      1.17.0
+#&gt; 97       future.apply       1.5.0
+#&gt; 98       future.callr       0.5.0
+#&gt; 99             gamlss       5.1-6
+#&gt; 100       gamlss.data       5.1-4
+#&gt; 101       gamlss.dist       5.1-6
+#&gt; 102            gargle       0.5.0
+#&gt; 103         gdalUtils     2.0.3.2
+#&gt; 104             gdata      2.18.0
+#&gt; 105          generics       0.0.2
+#&gt; 106           geojson       0.3.2
+#&gt; 107         geojsonio       0.9.2
+#&gt; 108       geojsonlint       0.4.0
+#&gt; 109           ggimage       0.2.8
+#&gt; 110           ggplot2       3.3.0
+#&gt; 111         ggplotify       0.0.5
+#&gt; 112          ggthemes       4.2.0
+#&gt; 113                gh       1.1.0
+#&gt; 114             git2r      0.27.1
+#&gt; 115              glmm       1.3.0
+#&gt; 116           globals      0.12.5
+#&gt; 117              glue       1.4.1
+#&gt; 118            gmailr       1.0.0
+#&gt; 119           gmodels      2.18.1
+#&gt; 120           goftest       1.2-2
+#&gt; 121       googleAuthR       1.2.1
+#&gt; 122       googledrive       1.0.1
+#&gt; 123          googleID    0.0.9001
+#&gt; 124        grainscape       0.4.3
+#&gt; 125             graph      1.64.0
+#&gt; 126          gridBase       0.4-7
+#&gt; 127         gridExtra         2.3
+#&gt; 128      gridGraphics       0.5-0
+#&gt; 129               gss       2.2-1
+#&gt; 130             gstat       2.0-6
+#&gt; 131            gtable       0.3.0
+#&gt; 132            gtools       3.8.2
+#&gt; 133            gurobi       9.0-1
+#&gt; 134             haven       2.2.0
+#&gt; 135            hexbin      1.28.1
+#&gt; 136        hexSticker       0.4.6
+#&gt; 137         highlight       0.5.0
+#&gt; 138             highr       0.8.1
+#&gt; 139             Hmisc       4.4-0
+#&gt; 140               hms       0.5.3
+#&gt; 141         htmlTable      1.13.3
+#&gt; 142         htmltools       0.4.0
+#&gt; 143       htmlwidgets       1.5.1
+#&gt; 144          httpcode       0.3.0
+#&gt; 145            httpuv       1.5.2
+#&gt; 146              httr       1.4.1
+#&gt; 147          hunspell         3.0
+#&gt; 148            igraph       1.2.5
+#&gt; 149        influenceR       0.1.0
+#&gt; 150               ini       0.3.1
+#&gt; 151           insight       0.8.4
+#&gt; 152         intervals      0.15.2
+#&gt; 153           isoband       0.2.1
+#&gt; 154          ISOcodes  2020.03.16
+#&gt; 155         iterators      1.0.12
+#&gt; 156         itertools       0.1-3
+#&gt; 157       janeaustenr       0.1.5
+#&gt; 158           janitor       2.0.1
+#&gt; 159              jpeg     0.1-8.1
+#&gt; 160               jqr       1.1.0
+#&gt; 161          jsonlite       1.6.1
+#&gt; 162      jsonvalidate       1.1.0
+#&gt; 163        kableExtra       1.1.0
+#&gt; 164             knitr        1.28
+#&gt; 165            koRpus      0.11-5
+#&gt; 166    koRpus.lang.en       0.1-3
+#&gt; 167          kSamples       1.2-9
+#&gt; 168          labeling         0.3
+#&gt; 169             LandR       0.0.5
+#&gt; 170          LandR.CS  0.0.2.0002
+#&gt; 171  landscapemetrics       1.4.4
+#&gt; 172    landscapetools       0.5.0
+#&gt; 173      LandWebUtils       0.1.0
+#&gt; 174             later       1.0.0
+#&gt; 175      latticeExtra      0.6-29
+#&gt; 176          lazyeval       0.2.2
+#&gt; 177           leaflet       2.0.3
+#&gt; 178    leaflet.extras       1.0.0
+#&gt; 179 leaflet.providers       1.9.0
+#&gt; 180        LearnBayes      2.15.1
+#&gt; 181         lifecycle       0.2.0
+#&gt; 182             lintr  2.0.1.9000
+#&gt; 183           listenv       0.8.0
+#&gt; 184              lme4      1.1-23
+#&gt; 185           logging    0.10-108
+#&gt; 186        lpsymphony      1.14.0
+#&gt; 187         lubridate       1.7.8
+#&gt; 188            lwgeom       0.2-3
+#&gt; 189            magick         2.3
+#&gt; 190          magrittr         1.5
+#&gt; 191               map       0.0.1
+#&gt; 192           mapdata       2.3.0
+#&gt; 193              maps       3.3.0
+#&gt; 194          maptools       1.0-1
+#&gt; 195          markdown       1.1.1
+#&gt; 196      MatrixModels       0.4-1
+#&gt; 197       matrixStats      0.56.0
+#&gt; 198           memoise       1.1.0
+#&gt; 199          merTools       0.5.0
+#&gt; 200    microbenchmark       1.4-7
+#&gt; 201              mime       0.9.1
+#&gt; 202            miniUI     0.1.1.1
+#&gt; 203             minqa       1.2.4
+#&gt; 204          multcomp      1.4-13
+#&gt; 205             MuMIn     1.43.17
+#&gt; 206           munsell       0.5.0
+#&gt; 207           mvtnorm       1.1-0
+#&gt; 208            nloptr     1.2.2.1
+#&gt; 209           nortest       1.0-4
+#&gt; 210           openssl       1.4.1
+#&gt; 211          openxlsx       4.1.5
+#&gt; 212           packrat       0.5.0
+#&gt; 213         parsedate       1.2.0
+#&gt; 214         patchwork       1.0.0
+#&gt; 215          pbkrtest     0.4-8.6
+#&gt; 216            pemisc  0.0.2.9000
+#&gt; 217       performance       0.4.6
+#&gt; 218           permute       0.9-5
+#&gt; 219            pillar       1.4.4
+#&gt; 220            pixmap      0.4-11
+#&gt; 221          pkgbuild       1.0.8
+#&gt; 222         pkgconfig       2.0.3
+#&gt; 223           pkgdown       1.5.1
+#&gt; 224           pkgload       1.0.2
+#&gt; 225             plogr       0.2.0
+#&gt; 226           plotKML       0.6-1
+#&gt; 227           plotrix       3.7-8
+#&gt; 228              plyr       1.8.6
+#&gt; 229               png       0.1-8
+#&gt; 230         polspline      1.1.19
+#&gt; 231          polyclip      1.10-0
+#&gt; 232            praise       1.0.0
+#&gt; 233        prettycode       1.1.0
+#&gt; 234       prettyunits       1.1.1
+#&gt; 235        prioritizr       5.0.1
+#&gt; 236          processx       3.4.2
+#&gt; 237           profvis       0.3.6
+#&gt; 238          progress       1.2.2
+#&gt; 239          promises       1.1.0
+#&gt; 240             proto       1.0.0
+#&gt; 241         protolite         2.1
+#&gt; 242              pryr       0.1.4
+#&gt; 243                ps       1.3.3
+#&gt; 244         PtProcess      3.3-13
+#&gt; 245             purrr       0.3.4
+#&gt; 246                qs      0.21.2
+#&gt; 247          quantreg        5.55
+#&gt; 248         quickPlot  0.1.6.9001
+#&gt; 249           R.cache      0.14.0
+#&gt; 250         R.devices      2.16.1
+#&gt; 251       R.methodsS3       1.8.0
+#&gt; 252              R.oo      1.23.0
+#&gt; 253           R.utils       2.9.2
+#&gt; 254                R6       2.4.1
+#&gt; 255      RandomFields       3.3.8
+#&gt; 256 RandomFieldsUtils       0.5.3
+#&gt; 257              RANN       2.6.1
+#&gt; 258     RApiSerialize       0.1.0
+#&gt; 259          rappdirs       0.3.1
+#&gt; 260            raster       3.1-5
+#&gt; 261         rasterVis        0.47
+#&gt; 262            Rclean       1.1.8
+#&gt; 263         rcmdcheck  1.3.3.9000
+#&gt; 264      RColorBrewer       1.1-2
+#&gt; 265              Rcpp     1.0.4.6
+#&gt; 266     RcppArmadillo 0.9.880.1.0
+#&gt; 267         RcppEigen   0.3.3.7.0
+#&gt; 268             RCurl    1.98-1.2
+#&gt; 269              rdoc       0.1.0
+#&gt; 270             readr       1.3.1
+#&gt; 271            readxl       1.3.1
+#&gt; 272           rematch       1.0.1
+#&gt; 273          rematch2       2.1.2
+#&gt; 274           remotes       2.1.1
+#&gt; 275      reproducible       1.1.0
+#&gt; 276      reproducible       1.1.0
+#&gt; 277           reshape       0.8.8
+#&gt; 278          reshape2       1.4.4
+#&gt; 279       revdepcheck  1.0.0.9001
+#&gt; 280               rex       1.2.0
+#&gt; 281             rgdal       1.4-8
+#&gt; 282             rgeos       0.5-3
+#&gt; 283         Rgraphviz      2.30.0
+#&gt; 284              rhub       1.1.1
+#&gt; 285               rio      0.5.16
+#&gt; 286             rJava      0.9-12
+#&gt; 287             rlang       0.4.6
+#&gt; 288        rmapshaper       0.4.4
+#&gt; 289         rmarkdown         2.1
+#&gt; 290               rms       5.1-4
+#&gt; 291          roxygen2       7.1.0
+#&gt; 292         RPostgres       1.2.0
+#&gt; 293         rprojroot       1.3-2
+#&gt; 294             RSAGA       1.3.0
+#&gt; 295            Rserve     1.7-3.1
+#&gt; 296           RSQLite       2.2.0
+#&gt; 297        rstudioapi        0.11
+#&gt; 298         Rsymphony      0.1-28
+#&gt; 299               rts      1.0-49
+#&gt; 300           rvcheck       0.1.8
+#&gt; 301         rversions       2.0.1
+#&gt; 302             rvest       0.3.5
+#&gt; 303          sandwich       2.5-1
+#&gt; 304            scales       1.1.1
+#&gt; 305               sdm      1.0-89
+#&gt; 306           selectr       0.4-2
+#&gt; 307       sessioninfo       1.1.1
+#&gt; 308                sf       0.9-3
+#&gt; 309        shapefiles         0.7
+#&gt; 310             shiny     1.4.0.2
+#&gt; 311           shinyBS        0.61
+#&gt; 312   shinycssloaders         0.3
+#&gt; 313    shinydashboard       0.7.1
+#&gt; 314           shinyjs         1.1
+#&gt; 315      shinyWidgets       0.5.2
+#&gt; 316          showtext         0.8
+#&gt; 317        showtextdb         2.0
+#&gt; 318            slackr       1.4.2
+#&gt; 319              slam      0.1-47
+#&gt; 320         snakecase      0.11.0
+#&gt; 321              snow       0.4-3
+#&gt; 322         SnowballC       0.7.0
+#&gt; 323       sourcetools       0.1.7
+#&gt; 324                sp       1.4-1
+#&gt; 325         spacetime       1.2-3
+#&gt; 326            SpaDES       2.0.4
+#&gt; 327     SpaDES.addins       0.1.2
+#&gt; 328       SpaDES.core       1.0.1
+#&gt; 329      SpaDES.shiny       0.2.0
+#&gt; 330      SpaDES.tools  0.3.5.9000
+#&gt; 331              spam       2.5-1
+#&gt; 332           SparseM        1.78
+#&gt; 333        spatialEco       1.3-1
+#&gt; 334       SpatialPack       0.3-8
+#&gt; 335          spatstat      1.64-1
+#&gt; 336     spatstat.data       1.4-3
+#&gt; 337    spatstat.utils      1.17-0
+#&gt; 338            spData       0.3.5
+#&gt; 339             spdep       1.1-3
+#&gt; 340          spelling         2.1
+#&gt; 341        stabledist       0.7-1
+#&gt; 342             stars       0.4-1
+#&gt; 343           statmod      1.4.34
+#&gt; 344         stopwords         2.0
+#&gt; 345        stringdist     0.9.5.5
+#&gt; 346           stringi       1.4.6
+#&gt; 347           stringr       1.4.0
+#&gt; 348            styler  1.3.2.9000
+#&gt; 349         SuppDists     1.1-9.5
+#&gt; 350             sylly       0.1-5
+#&gt; 351          sylly.en       0.1-3
+#&gt; 352               sys         3.3
+#&gt; 353          sysfonts       0.8.1
+#&gt; 354            tensor         1.5
+#&gt; 355            testit        0.11
+#&gt; 356          testthat       2.3.2
+#&gt; 357           TH.data      1.0-10
+#&gt; 358            tibble       3.0.1
+#&gt; 359            tictoc         1.0
+#&gt; 360             tidyr       1.0.3
+#&gt; 361        tidyselect       1.1.0
+#&gt; 362          tidytext       0.2.4
+#&gt; 363             tiler       0.2.4
+#&gt; 364          timeDate    3043.102
+#&gt; 365        timeSeries    3062.100
+#&gt; 366          TimeWarp      1.0.15
+#&gt; 367           tinytex        0.22
+#&gt; 368        tokenizers       0.2.1
+#&gt; 369         triebeard       0.3.0
+#&gt; 370         truncnorm       1.0-8
+#&gt; 371             trust       0.1-8
+#&gt; 372             udapi       0.1.3
+#&gt; 373             units       0.6-6
+#&gt; 374         unixtools       0.1-1
+#&gt; 375          urltools       1.7.3
+#&gt; 376        usefulFuns       0.1.0
+#&gt; 377           usethis       1.6.1
+#&gt; 378              utf8       1.1.4
+#&gt; 379              uuid       0.1-4
+#&gt; 380                V8       3.0.2
+#&gt; 381             vctrs       0.3.0
+#&gt; 382             vegan       2.5-6
+#&gt; 383             velox       0.2.0
+#&gt; 384          versions         0.3
+#&gt; 385              VGAM       1.1-3
+#&gt; 386           viridis       0.5.1
+#&gt; 387       viridisLite       0.3.0
+#&gt; 388        visNetwork       2.0.9
+#&gt; 389           webshot       0.5.2
+#&gt; 390           whisker         0.4
+#&gt; 391            whoami       1.3.0
+#&gt; 392             withr       2.2.0
+#&gt; 393    wordcountaddin  0.3.0.9000
+#&gt; 394              xfun        0.13
+#&gt; 395              xlsx       0.6.3
+#&gt; 396          xlsxjars       0.6.1
+#&gt; 397               XML    3.99-0.3
+#&gt; 398              xml2       1.3.2
+#&gt; 399      xmlparsedata       1.0.3
+#&gt; 400             xopen       1.0.0
+#&gt; 401            xtable       1.8-4
+#&gt; 402               xts      0.12-0
+#&gt; 403          yaImpute      1.0-32
+#&gt; 404              yaml       2.2.1
+#&gt; 405             yesno       0.1.1
+#&gt; 406               zip       2.0.4
+#&gt; 407               zoo       1.8-8
+#&gt; 408           littler       0.3.9
+#&gt; 409              base       3.6.3
+#&gt; 410              boot      1.3-25
+#&gt; 411             class      7.3-17
+#&gt; 412           cluster       2.1.0
+#&gt; 413         codetools      0.2-16
+#&gt; 414          compiler       3.6.3
+#&gt; 415          datasets       3.6.3
+#&gt; 416           foreign      0.8-76
+#&gt; 417          graphics       3.6.3
+#&gt; 418         grDevices       3.6.3
+#&gt; 419              grid       3.6.3
+#&gt; 420        KernSmooth     2.23-17
+#&gt; 421           lattice     0.20-41
+#&gt; 422              MASS    7.3-51.6
+#&gt; 423            Matrix      1.2-18
+#&gt; 424           methods       3.6.3
+#&gt; 425              mgcv      1.8-31
+#&gt; 426              nlme     3.1-147
+#&gt; 427              nnet      7.3-14
+#&gt; 428          parallel       3.6.3
+#&gt; 429             rpart      4.1-15
+#&gt; 430           spatial      7.3-12
+#&gt; 431           splines       3.6.3
+#&gt; 432             stats       3.6.3
+#&gt; 433            stats4       3.6.3
+#&gt; 434          survival      3.1-12
+#&gt; 435             tcltk       3.6.3
+#&gt; 436             tools       3.6.3
+#&gt; 437      translations       3.6.3
+#&gt; 438             utils       3.6.3</div><div class='input'><span class='kw pkg'>data.table</span><span class='kw ns'>::</span><span class='fu'><a href='https://Rdatatable.gitlab.io/data.table/reference/fread.html'>fread</a></span>(<span class='no'>pkgSnapFile</span>)</div><div class='output co'>#&gt;          instPkgs   instVers
+#&gt;   1: reproducible      1.1.1
+#&gt;   2: reproducible      1.1.1
+#&gt;   3:        abind      1.4-5
+#&gt;   4:      acepack      1.4.1
+#&gt;   5:          amc 0.1.6.9000
+#&gt;  ---                        
+#&gt; 434:     survival     3.1-12
+#&gt; 435:        tcltk      3.6.3
+#&gt; 436:        tools      3.6.3
+#&gt; 437: translations      3.6.3
+#&gt; 438:        utils      3.6.3</div><div class='input'>
 </div></pre>
   </div>
-  <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
-    <h2>Contents</h2>
-    <ul class="nav nav-pills nav-stacked">
-      <li><a href="#arguments">Arguments</a></li>
-      <li><a href="#details">Details</a></li>
-      <li><a href="#examples">Examples</a></li>
-    </ul>
-
+  <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
+    <nav id="toc" data-toggle="toc" class="sticky-top">
+      <h2 data-toc-skip>Contents</h2>
+    </nav>
   </div>
 </div>
 
@@ -627,7 +646,7 @@ This can later be passed to <code>Require</code>.</p>
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.4.1.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.5.1.</p>
 </div>
 
       </footer>

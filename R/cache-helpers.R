@@ -24,7 +24,7 @@ setMethod(
   signature = "ANY",
   definition = function(object) {
     NULL
-})
+  })
 
 ################################################################################
 #' Create a custom cache message by class
@@ -37,6 +37,7 @@ setMethod(
 #' @param functionName A character string indicating the function name
 #' @param fromMemoise Logical. If \code{TRUE}, the message will be about
 #'        recovery from memoised copy
+#' @inheritParams Cache
 #'
 #' @author Eliot McIntire
 #' @export
@@ -46,7 +47,8 @@ setMethod(
 #' .cacheMessage(a, "mean")
 #'
 setGeneric(".cacheMessage", function(object, functionName,
-                                     fromMemoise = getOption("reproducible.useMemoise", TRUE)) {
+                                     fromMemoise = getOption("reproducible.useMemoise", TRUE),
+                                     verbose = getOption("reproducible.verbose", 1)) {
   standardGeneric(".cacheMessage")
 })
 
@@ -55,59 +57,16 @@ setGeneric(".cacheMessage", function(object, functionName,
 setMethod(
   ".cacheMessage",
   signature = "ANY",
-  definition = function(object, functionName,
-                        fromMemoise) {
+  definition = function(object, functionName, fromMemoise, verbose = getOption("reproducible.verbose", 1)) {
     if (isTRUE(fromMemoise)) {
-      message(crayon::blue("  loading memoised result from previous ", functionName, " call.",
-                           sep = ""))
+      messageCache(.loadedCacheMsg(.loadedMemoisedResultMsg, functionName), verbose = verbose)
     } else if (!is.na(fromMemoise)) {
-      message(crayon::blue("  loading cached result from previous ", functionName, " call, ",
-                           "adding to memoised copy", sep = ""))
+      messageCache(.loadedCacheMsg(.loadedCacheResultMsg, functionName),
+                   "adding to memoised copy...", sep = "", verbose = verbose)
     } else {
-      message(crayon::blue("  loading cached result from previous ", functionName, " call.",
-                           sep = ""))
+      messageCache(.loadedCacheMsg(.loadedCacheResultMsg, functionName), verbose = verbose)
     }
-})
-
-################################################################################
-#' Determine object size of all objects inside environments
-#'
-#' This is a generic definition that can be extended according to class.
-#'
-#' @return A numeric, the result of object.size for all objects in environments.
-#'
-#' @param object Any R object.
-#'
-#' @author Eliot McIntire
-#' @export
-#' @rdname objSizeInclEnviros
-#' @examples
-#' a <- new.env()
-#' a$b <- 1:10
-#' object.size(a)
-#' .objSizeInclEnviros(a) # much larger
-#'
-setGeneric(".objSizeInclEnviros", function(object) {
-  standardGeneric(".objSizeInclEnviros")
-})
-
-#' @export
-#' @rdname objSizeInclEnviros
-setMethod(
-  ".objSizeInclEnviros",
-  signature = "ANY",
-  definition = function(object) {
-    object.size(object)
-})
-
-#' @export
-#' @rdname objSizeInclEnviros
-setMethod(
-  ".objSizeInclEnviros",
-  signature = "environment",
-  definition = function(object) {
-    object.size(as.list(object, all.names = TRUE))
-})
+  })
 
 ################################################################################
 #' Add tags to object
@@ -140,7 +99,7 @@ setMethod(
   signature = "ANY",
   definition = function(object, outputObjects, FUN, preDigestByClass) { # nolint
     object
-})
+  })
 
 ################################################################################
 #' Any miscellaneous things to do before \code{.robustDigest} and after \code{FUN} call
@@ -170,7 +129,7 @@ setMethod(
   signature = "ANY",
   definition = function(object) { # nolint
     NULL
-})
+  })
 
 ################################################################################
 #' Check for cache repository info in ...
@@ -180,18 +139,19 @@ setMethod(
 #'
 #' @param object An R object
 #' @param create Logical. If TRUE, then it will create the path for cache.
+#' @inheritParams Cache
 #'
 #' @return A character string with a path to a cache repository.
 #'
 #' @author Eliot McIntire
 #' @export
-#' @importFrom archivist showLocalRepo rmFromLocalRepo
 #' @rdname checkCacheRepo
 #' @examples
 #' a <- "test"
 #' .checkCacheRepo(a) # no cache repository supplied
 #'
-setGeneric(".checkCacheRepo", function(object, create = FALSE) {
+setGeneric(".checkCacheRepo", function(object, create = FALSE,
+                                       verbose = getOption("reproducible.verbose", 1)) {
   standardGeneric(".checkCacheRepo")
 })
 
@@ -200,22 +160,24 @@ setGeneric(".checkCacheRepo", function(object, create = FALSE) {
 setMethod(
   ".checkCacheRepo",
   signature = "ANY",
-  definition = function(object, create) {
+  definition = function(object, create, verbose = getOption("reproducible.verbose", 1)) {
     cacheRepo <- tryCatch(checkPath(object, create), error = function(x) {
       cacheRepo <- if (isTRUE(nzchar(getOption("reproducible.cachePath")[1]))) {
-        tmpDir <- tempdir()
-        if (identical(normPath(getOption("reproducible.cachePath")), normPath(tmpDir))) {
-          message("No cacheRepo supplied and getOption('reproducible.cachePath') is the temporary directory;\n  ",
-                  "this will not persist across R sessions.")
+        tmpDir <- .reproducibleTempCacheDir()
+        # Test whether the user has accepted the default. If yes, then give message.
+        #  If no, then user is aware and doesn't need a message
+        if (any(identical(normPath(tmpDir), normPath(getOption("reproducible.cachePath"))))) {
+          messageCache("No cacheRepo supplied and getOption('reproducible.cachePath') is inside a temporary directory;\n",
+                       "  this will not persist across R sessions.", verbose = verbose)
         }
         getOption("reproducible.cachePath", tmpDir)
       } else {
-        message("No cacheRepo supplied. Using tempdir()")
-        tempdir()
+        messageCache("No cacheRepo supplied. Using ",.reproducibleTempCacheDir(), verbose = verbose)
+        .reproducibleTempCacheDir()
       }
       checkPath(path = cacheRepo, create = create)
     })
-})
+  })
 
 ################################################################################
 #' Make any modifications to object recovered from cacheRepo
@@ -230,17 +192,13 @@ setMethod(
 #'
 #' @author Eliot McIntire
 #' @export
-#' @importFrom archivist showLocalRepo rmFromLocalRepo
 #' @rdname prepareOutput
 #' @examples
 #' a <- 1
 #' .prepareOutput(a) # does nothing
 #'
-#' b <- "Null"
+#' b <- "NULL"
 #' .prepareOutput(b) # converts to NULL
-#'
-#' # For rasters, it is same as .prepareFileBackedRaster
-#' try(archivist::createLocalRepo(tempdir()))
 #'
 #' library(raster)
 #' r <- raster(extent(0,10,0,10), vals = 1:100)
@@ -256,14 +214,36 @@ setGeneric(".prepareOutput", function(object, cacheRepo, ...) {
 
 #' @export
 #' @rdname prepareOutput
+#' @importFrom Require normPath
+#' @importFrom RSQLite SQLite
 setMethod(
   ".prepareOutput",
-  signature = "RasterLayer",
-  definition = function(object, cacheRepo, ...) {
+  signature = "Raster",
+  definition = function(object, cacheRepo, drv = getOption("reproducible.drv", RSQLite::SQLite()),
+                        conn = getOption("reproducible.conn", NULL), ...) {
     # with this call to .prepareFileBackedRaster, it is from the same function call as a previous time
     #  overwrite is ok
-    .prepareFileBackedRaster(object, repoDir = cacheRepo, ...)
-})
+    # .prepareFileBackedRaster(object, repoDir = cacheRepo, drv = drv, conn = conn, ...)
+    # browser(expr = exists("._prepareOutputs_1"))
+    if (isTRUE(fromDisk(object))) {
+      fns <- Filenames(object, allowMultiple = FALSE)
+      fpShould <- normPath(file.path(cacheRepo, "rasters"))
+      isCorrect <- unlist(lapply(normPath(file.path(fpShould, basename(fns))),
+                                 function(x) any(grepl(x, fns))))
+      if (!any(isCorrect)) {
+        if (is(object, "RasterStack")) {
+          # browser(expr = exists("._prepareOutputs_2"))
+          for (i in seq(nlayers(object))) {
+            object@layers[[i]]@file@name <- gsub(dirname(object@layers[[i]]@file@name),
+                                                 fpShould, object@layers[[i]]@file@name)
+          }
+        } else {
+          object@file@name <- gsub(unique(dirname(fns)), fpShould, fns)
+        }
+      }
+    }
+    object
+  })
 
 #' @export
 #' @rdname prepareOutput
@@ -274,14 +254,12 @@ setMethod(
     if (is.character(object)) {
       if (length(object) == 1) {
         # need something to attach tags to if it is actually NULL
-        if (object == "Null") object <- NULL
+        if (identical(object, "NULL")) object <- NULL
       }
     }
     object
-})
+  })
 
-
-#####################################
 ################################################################################
 #' Add an attribute to an object indicating which named elements change
 #'
@@ -298,7 +276,6 @@ setMethod(
 #'
 #' @author Eliot McIntire
 #' @export
-#' @importFrom archivist showLocalRepo rmFromLocalRepo
 #' @rdname addChangedAttr
 #' @examples
 #' a <- 1
@@ -314,27 +291,29 @@ setMethod(
   signature = "ANY",
   definition = function(object, preDigest, origArguments, ...) {
     object
-})
+  })
 
 #' A set of helpers for Cache
 #'
 #' These are internal only.
 #'
 #' @param FUN A function
-#' @param ... passing the ... from outer function, which will include potential
-#'        arguments to the FUN
+#' @param ... passing the \code{...} from outer function, which will include potential
+#'        arguments to the \code{FUN}
 #' @param overrideCall A character string indicating a different (not "Cache") function
 #'        name to search for. Mostly so that this works with deprecated "cache".
-#' @param isPipe Logical. If the call to getFunctionName is coming from a pipe, there is more
-#'               information available. Specifically, ._lhs which is already a call.
+#' @param isPipe Logical. If the call to \code{getFunctionName} is coming from a pipe, there is more
+#'               information available. Specifically, \code{._lhs} which is already a call.
 #' @note If the function cannot figure out a clean function name, it returns "internal"
 #'
 #' @author Eliot McIntire
 #' @importFrom methods selectMethod showMethods
+#' @importFrom utils head
 #' @keywords internal
-#' @rdname cacheHelper
+#' @rdname cache-helpers
 getFunctionName <- function(FUN, originalDots, ..., overrideCall, isPipe) { # nolint
   callIndex <- numeric()
+  scalls <- sys.calls()
   if (isS4(FUN)) {
     # Have to extract the correct dispatched method
     firstElems <- strsplit(showMethods(FUN, inherited = TRUE, printTo = FALSE), split = ", ")
@@ -369,7 +348,8 @@ getFunctionName <- function(FUN, originalDots, ..., overrideCall, isPipe) { # no
     }
 
     matchedCall <- matchedCall[nzchar(names(matchedCall))]
-    matchedCall <- matchedCall[na.omit(match(names(matchedCall), FUN@signature[signat]))]
+    ff <- match(names(matchedCall), FUN@signature[signat])
+    matchedCall <- matchedCall[ff[!is.na(ff)]]
     matchedCall <- lapply(matchedCall, eval)
 
     signatures <- rep("missing", (sum(signat))) # default is "missing"
@@ -384,13 +364,12 @@ getFunctionName <- function(FUN, originalDots, ..., overrideCall, isPipe) { # no
     functionName <- FUN@generic
     FUN <- methodUsed@.Data  # nolint
   } else {
-    scalls <- sys.calls()
     if (!missing(overrideCall)) {
       callIndices <- .grepSysCalls(scalls, pattern = paste0("^", overrideCall))
       functionCall <- scalls[callIndices]
     } else {
       callIndices <- .grepSysCalls(scalls,
-        pattern = "^Cache|^SpaDES::Cache|^reproducible::Cache|^cloudCache")
+                                   pattern = "^Cache|^SpaDES::Cache|^reproducible::Cache|^cloudCache")
       callIndicesDoCall <- .grepSysCalls(scalls, pattern = "^do.call")
       doCall1st2Elements <- lapply(scalls[callIndicesDoCall], function(x) x[1:2])
       callIndicesDoCall <- callIndicesDoCall[grep("Cache", doCall1st2Elements)]
@@ -463,13 +442,15 @@ getFunctionName <- function(FUN, originalDots, ..., overrideCall, isPipe) { # no
   if (isTRUE(grepl(functionName, pattern = "\\(")))
     functionName <- NA_character_
 
-  return(list(functionName = functionName, .FUN = .FUN))#, callIndex = callIndex))
+  nestLevel <- length(grep(lapply(scalls, function(x) x[1:2]),
+                           pattern = "^Cache"))/2
+
+  return(list(functionName = functionName, .FUN = .FUN, nestLevel = nestLevel - 1))#, callIndex = callIndex))
 }
 
 #' @exportClass Path
 #' @rdname Path-class
-setClass("Path", slots = c(.Data = "character"), contains = "character",
-         prototype = NA_character_)
+setClass("Path", slots = c(.Data = "character"), contains = "character", prototype = NA_character_)
 
 #' Coerce a character string to a class "Path"
 #'
@@ -539,130 +520,54 @@ setAs(from = "character", to = "Path", function(from) {
   asPath(from, 0)
 })
 
-################################################################################
-#' Clear erroneous archivist artifacts
-#'
-#' Stub artifacts can result from several causes. The most common being
-#' erroneous removal of a file in the SQLite database. This can be caused
-#' sometimes if an archive object is being saved multiple times by multiple
-#' threads. This function will clear entries in the SQLite database which
-#' have no actual file with data.
-#'
-#' @return Invoked for its side effect on the \code{repoDir}.
-#'
-#' @param repoDir A character denoting an existing directory of the repository for
-#' which metadata will be returned. If \code{NULL} (default), it will use the
-#' \code{repoDir} specified in \code{archivist::setLocalRepo}.
-#'
-#' @author Eliot McIntire
-#' @export
-#' @importFrom archivist showLocalRepo rmFromLocalRepo
-#' @rdname clearStubArtifacts
-#'
-#' @examples
-#' tmpDir <- file.path(tempdir(), "reproducible_examples", "clearStubArtifacts")
-#'
-#' lapply(c(runif, rnorm), function(f) {
-#'   reproducible::Cache(f, 10, cacheRepo = tmpDir)
-#' })
-#'
-#' # clear out any stub artifacts
-#' showCache(tmpDir)
-#'
-#' file2Remove <- dir(file.path(tmpDir, "gallery"), full.name = TRUE)[1]
-#' file.remove(file2Remove)
-#' showCache(tmpDir) # repository directory still thinks files are there
-#'
-#' # run clearStubArtifacts
-#' suppressWarnings(clearStubArtifacts(tmpDir))
-#' showCache(tmpDir) # stubs are removed
-#'
-#' # cleanup
-#' clearCache(tmpDir, ask = FALSE)
-#' unlink(tmpDir, recursive = TRUE)
-#'
-setGeneric("clearStubArtifacts", function(repoDir = NULL) {
-  standardGeneric("clearStubArtifacts")
-})
-
-#' @export
-#' @rdname clearStubArtifacts
-#' @importFrom magrittr %>%
-setMethod(
-  "clearStubArtifacts",
-  definition = function(repoDir) {
-    md5hashInBackpack <- showLocalRepo(repoDir = repoDir)$md5hash
-    listFiles <- dir(file.path(repoDir, "gallery")) %>%
-      strsplit(".rda") %>%
-      unlist()
-    toRemove <- !(md5hashInBackpack %in% listFiles)
-    md5hashInBackpack[toRemove] %>%
-      sapply(., rmFromLocalRepo, repoDir = repoDir)
-    return(invisible(md5hashInBackpack[toRemove]))
-})
-
-#' Copy the file-backing of a file-backed Raster* object
-#'
-#' Rasters are sometimes file-based, so the normal save and copy and assign
-#' mechanisms in R don't work for saving, copying and assigning.
-#' This function creates an explicit file copy of the file that is backing the raster,
-#' and changes the pointer (i.e., \code{filename(object)}) so that it is pointing
-#' to the new file.
-#'
-#' @param obj The raster object to save to the repository.
-#'
-#' @param repoDir Character denoting an existing directory in which an artifact will be saved.
-#'
-#' @param overwrite Logical. Should the raster be saved to disk, overwriting existing file.
-#'
-#' @param ... passed to \code{archivist::saveToRepo}
-#'
-#' @return A raster object and its newly located file backing.
-#'         Note that if this is a legitimate archivist repository, the new location
-#'         will be a subdirectory called \file{rasters/} of \file{repoDir/}.
-#'         If this is not a repository, the new location will be within \code{repoDir}.
-#'
-#' @author Eliot McIntire
-#' @export
-#' @importFrom digest digest
-#' @importFrom methods is selectMethod slot slot<-
-#' @importFrom raster dataType filename hasValues inMemory nlayers writeRaster
-#' @rdname prepareFileBackedRaster
-#' @examples
-#' library(raster)
-#' archivist::createLocalRepo(tempdir())
-#'
-#' r <- raster(extent(0,10,0,10), vals = 1:100)
-#'
-#' # write to disk manually -- will be in tempdir()
-#' r <- writeRaster(r, file = tempfile())
-#'
-#' # copy it to the cache repository
-#' r <- .prepareFileBackedRaster(r, tempdir())
-#'
-#' r # now in "rasters" subfolder of tempdir()
-#'
-.prepareFileBackedRaster <- function(obj, repoDir = NULL, overwrite = FALSE, ...) {
+# Old one
+.prepareFileBackedRaster2 <- function(obj, repoDir = NULL, overwrite = FALSE,
+                                      drv = getOption("reproducible.drv", RSQLite::SQLite()),
+                                      conn = getOption("reproducible.conn", NULL),
+                                      ...) {
   isRasterLayer <- TRUE
+  isBrick <- is(obj, "RasterBrick")
   isStack <- is(obj, "RasterStack")
   repoDir <- checkPath(repoDir, create = TRUE)
-  isRepo <- all(c("backpack.db", "gallery") %in% list.files(repoDir))
+  isRepo <- CacheIsACache(cachePath = repoDir, drv = drv, conn = conn)
 
   ## check which files are backed
+  numFiles <- sum(nchar(unique(Filenames(obj)))>0)
+  allInOneFile <- allInOneFile(obj)
+  # if (isStack && numFiles > 0) {
+  #   innerFilenames <- unlist(lapply(obj@layers, filename))
+  #   allInOneFile <- isTRUE(sum(nchar(innerFilenames)>0) == length(obj@layers))
+  # }
+
   whichInMemory <- if (!isStack) {
-    inMemory(obj)
+    im <- inMemory(obj)
+    if (isBrick) {
+      if (isTRUE(im))
+        im <- rep(im, raster::nlayers(obj))
+    }
+    im
   } else {
-   sapply(obj@layers, inMemory)
+    sapply(obj@layers, inMemory)
   }
   whichHasValues <- if (!isStack) {
     hasValues(obj)
   } else {
     sapply(obj@layers, hasValues)
   }
+
   isFilebacked <- !(whichInMemory | !whichHasValues)
+  # if (isStack && any(isFilebacked)) {
+  #   if (allInOneFile) {
+  #      isFilebacked <- rep(TRUE, numFiles)
+  #   }
+  # }
 
   ## create a storage vector of file names to be filled
-  curFilename <- rep("", length(isFilebacked))
+  curFilename <- if (isBrick) {
+    ""
+  } else {
+    rep("", length(isFilebacked))
+  }
 
   if (any(!isFilebacked)) {
     fileExt <- if (!isStack) {
@@ -676,13 +581,20 @@ setMethod(
     curFilename[!isFilebacked] <- tempName[!isFilebacked]
   }
   if (any(isFilebacked)) {
-    if (is(obj, "RasterLayer") || is(obj, "RasterBrick")) {
-      curFilename <- normalizePath(filename(obj), winslash = "/", mustWork = FALSE)
-    } else  {
-      curFilenames <- unlist(lapply(obj@layers, function(x)
-        normalizePath(filename(x), winslash = "/", mustWork = FALSE)))
-      curFilename[isFilebacked] <- curFilenames[isFilebacked]
+    if (isTRUE(allInOneFile)) {
+      curFiles <- normPath(Filenames(obj, allowMultiple = FALSE))
+    } else {
+      curFiles <- normPath(Filenames(obj, allowMultiple = FALSE)[isFilebacked])
     }
+    curFilename[isFilebacked] <- curFiles
+    # if (is(obj, "RasterLayer") || is(obj, "RasterBrick") ||
+    #     (is(obj, "RasterStack") && numFiles == 1)) {
+    #   curFilename <- normalizePath(Filenames(obj), winslash = "/", mustWork = FALSE)
+    # } else  {
+    #   curFilenames <- unlist(lapply(obj@layers, function(x)
+    #     normalizePath(filename(x), winslash = "/", mustWork = FALSE)))
+    #   curFilename[isFilebacked] <- curFilenames[isFilebacked]
+    # }
   }
 
   ## check for files that should've been backed, but don't exist
@@ -727,78 +639,91 @@ setMethod(
     } else {
       file.path(repoDir, basename(curFilename))
     }
-    saveFilename <- normalizePath(saveFilename, winslash = "/", mustWork = FALSE)
+    saveFilename <- normPath(saveFilename)
   }
 
   sameFilenames <- saveFilename == curFilename
   if (any(sameFilenames)) {
     if (!overwrite) {
       saveFilename[sameFilenames] <- unlist(lapply(seq_along(curFilename[sameFilenames]),
-             function(x) {
-               if (file.exists(saveFilename[x])) {
-                 nextNumericName(saveFilename[x])
-               } else {
-                 saveFilename[x]
-               }
-             }))
+                                                   function(x) {
+                                                     if (file.exists(saveFilename[x])) {
+                                                       nextNumericName(saveFilename[x])
+                                                     } else {
+                                                       saveFilename[x]
+                                                     }
+                                                   }))
     }
   }
   # filenames are not the same, check if backed, act accordingly
 
-if (any(saveFilename != curFilename)) {
-  notSameButBacked <- saveFilename != curFilename & isFilebacked
+  if (any(saveFilename != curFilename)) {
+    notSameButBacked <- saveFilename != curFilename & isFilebacked
 
-  if (any(notSameButBacked)) {
-    ## deal only with files that have been backed
+    if (any(notSameButBacked)) {
+      ## deal only with files that have been backed
       saveFilename2 <- saveFilename[notSameButBacked]
       curFilename2 <- curFilename[notSameButBacked]
 
-        pathExists <- dir.exists(dirname(saveFilename2))
-        if (any(!pathExists)) {
-          dirname(saveFilename2) %>%
-            unique() %>%
-            sapply(., dir.create, recursive = TRUE)
-        }
+      pathExists <- dir.exists(dirname(saveFilename2))
+      if (any(!pathExists)) {
+        dirname(saveFilename2) %>%
+          unique() %>%
+          sapply(., dir.create, recursive = TRUE)
+      }
 
-        if (any(saveFilename2 %>% grepl(., pattern = "[.]grd$"))) {
-          copyFile(from = curFilename2, to = saveFilename2, overwrite = TRUE, silent = TRUE)
-          griFilename <- sub(saveFilename2, pattern = "[.]grd$", replacement = ".gri")
-          curGriFilename <- sub(curFilename2, pattern = "[.]grd$", replacement = ".gri")
-          copyFile(from = curGriFilename, to = griFilename, overwrite = TRUE, silent = TRUE)
-        } else {
-          saveFilename2 <- sapply(seq_along(curFilename2), function(x) {
-            # change filename if it already exists
-              if (file.exists(saveFilename2[x])) {
-                saveFilename2[x] <- nextNumericName(saveFilename2[x])
-              }
-              copyFile(to = saveFilename2[x],
-                       overwrite = TRUE,
-                       from = curFilename2[x], silent = TRUE)
-          })
-        }
+      saveFilename2 <- sapply(seq_along(curFilename2), function(x) {
+        curFilenameBase <- filePathSansExt(curFilename2[x])
+        curFilename <- dir(dirname(curFilename2[x]), pattern = paste0(basename(curFilenameBase), "\\."),
+                           full.names = TRUE)
+        exts <- fileExt(curFilename)
+        saveFilenamesBase <- filePathSansExt(saveFilename2[x])
+        saveFilenames <- paste0(saveFilenamesBase, ".", exts)
 
-        # for a stack with independent Raster Layers (each with own file)
-        if (length(curFilename2) > 1) {
-          for (i in seq_along(curFilename2)) {
-            slot(slot(slot(obj, "layers")[[i]], "file"), "name") <- saveFilename2[i]
-          }
-        } else {
-          if (!isStack) {
-            slot(slot(obj, "file"), "name") <- saveFilename2
-          } else {
-            for (i in seq_len(nlayers(obj))) {
-              whFilename <- match(basename(saveFilename2), basename(curFilename2))
-              slot(slot(obj@layers[[i]], "file"), "name") <- saveFilename2[whFilename]
-            }
-          }
-        }
 
-        ## update saveFilename
-        saveFilename[notSameButBacked] <- saveFilename2[notSameButBacked]
+        # browser(expr = exists("._prepareFileBackedRaster_2"))
+        # change filename if it already exists
+        if (any(file.exists(saveFilenames))) {
+          saveFilenames <- nextNumericName(saveFilenames)
+        }
+        out <- hardLinkOrCopy(from = curFilename, to = saveFilenames, overwrite = TRUE)
+        # if (FALSE) {
+        #   outFL <- suppressWarningsSpecific(file.link(to = saveFilenames,
+        #                                               from = curFilename),
+        #                                     falseWarnings = "already exists|Invalid cross-device")
+        #   if (any(!outFL)) {
+        #     copyFile(to = saveFilenames[!outFL],
+        #              overwrite = TRUE,
+        #              from = curFilename[!outFL], silent = TRUE)
+        #
+        #   }
+        # }
+        saveFilenames[match(fileExt(curFilename2[x]), fileExt(saveFilenames))]
+      })
+
+      # for a stack with independent Raster Layers (each with own file)
+      obj <- updateFilenameSlots2(obj, curFilename2, saveFilename2, isStack)
+      # if (length(curFilename2) > 1) {
+      #   for (i in seq_along(curFilename2)) {
+      #     slot(slot(slot(obj, "layers")[[i]], "file"), "name") <- saveFilename2[i]
+      #   }
+      # } else {
+      #   if (!isStack) {
+      #     slot(slot(obj, "file"), "name") <- saveFilename2
+      #   } else {
+      #     for (i in seq_len(nlayers(obj))) {
+      #       whFilename <- match(basename(saveFilename2), basename(curFilename2))
+      #       slot(slot(obj@layers[[i]], "file"), "name") <- saveFilename2[whFilename]
+      #     }
+      #   }
+      # }
+
+      ## update saveFilename
+      saveFilename[notSameButBacked] <- saveFilename2[notSameButBacked]
     }
-  if (any(!notSameButBacked)) {
+    if (any(!notSameButBacked)) {
       ## deal with files that haven't been backed
-      checkPath(unique(dirname(saveFilename[!notSameButBacked])), create = TRUE) #SpaDES dependency
+      checkPath(unique(dirname(saveFilename[!notSameButBacked])), create = TRUE)
       if (any(!whichInMemory[!notSameButBacked])) {
         if (!isStack) {
           obj <- writeRaster(obj, filename = saveFilename[!notSameButBacked], datatype = dataType(obj))
@@ -848,7 +773,7 @@ if (any(saveFilename != curFilename)) {
 #' tmpDirTo <- file.path(tempdir(), "example_fileCopy_to")
 #' tmpFile1 <- tempfile("file1", tmpDirFrom, ".csv")
 #' tmpFile2 <- tempfile("file2", tmpDirFrom, ".csv")
-#' dir.create(tmpDirFrom)
+#' checkPath(tmpDirFrom, create = TRUE)
 #' f1 <- normalizePath(tmpFile1, mustWork = FALSE)
 #' f2 <- normalizePath(tmpFile2, mustWork = FALSE)
 #' t1 <- normalizePath(file.path(tmpDirTo, basename(tmpFile1)), mustWork = FALSE)
@@ -879,7 +804,7 @@ copySingleFile <- function(from = NULL, to = NULL, useRobocopy = TRUE,
   os <- tolower(Sys.info()[["sysname"]])
   .onLinux <- .Platform$OS.type == "unix" && unname(os) == "linux"
   if (!useFileCopy) {
-    if (isWindows()) {
+    if (isWindows() && isTRUE(file.size(from) > 1e6)) {
       if (!isTRUE(unique(dir.exists(to)))) toDir <- dirname(to) # extract just the directory part
       robocopyBin <- tryCatch(Sys.which("robocopy"), warning = function(w) NA_character_)
 
@@ -916,10 +841,10 @@ copySingleFile <- function(from = NULL, to = NULL, useRobocopy = TRUE,
         if (!dir.exists(to)) toDir <- dirname(to) # extract just the directory part
         rsyncBin <- tryCatch(Sys.which("rsync"), warning = function(w) NA_character_)
         opts <- if (silent) " -a " else " -avP "
-        # rsync command can't handle spaces in dirnames -- must protect them
+        # rsync command can't handle spaces file/dir names -- must protect them
         toDir <- gsub("\ ", "\\ ", toDir, fixed = TRUE)
         rsync <- paste0(rsyncBin, " ", opts, " --delete "[delDestination],
-                        normalizePath(from, mustWork = TRUE), " ",
+                        "'", normalizePath(from, mustWork = TRUE), "' ",
                         normalizePath(toDir, mustWork = FALSE), "/")
 
         useFileCopy <- tryCatch(system(rsync, intern = TRUE), error = function(x) TRUE)
@@ -943,31 +868,133 @@ copyFile <- Vectorize(copySingleFile, vectorize.args = c("from", "to"))
 
 #' @importFrom methods slotNames
 #' @importFrom digest digest
-#' @importFrom fastdigest fastdigest
 #' @importFrom raster res crs extent
-#' @rdname cacheHelper
+#' @rdname cache-helpers
 .digestRasterLayer <- function(object, length, algo, quick) {
   # metadata -- only a few items of the long list because one thing (I don't recall)
   #  doesn't cache consistently
+  if (isTRUE(getOption("reproducible.useNewDigestAlgorithm") < 2)) {
+    return(.digestRasterLayer2(object, length, algo, quick))
+  }
+
+  isRasterStack <- is(object, "RasterStack")
+  if (!isRasterStack) {
+    objList <- list(object)
+  } else {
+    objList <- object@layers
+  }
+  dig <- lapply(objList, function(object) {
+    sn <- slotNames(object@data)
+    sn <- sn[!(sn %in% c(#"min", "max", "haveminmax", "names", "isfactor",
+      "dropped", "nlayers", "fromdisk", "inmemory"
+      #"offset", "gain"
+    ))]
+    dataSlotsToDigest <- lapply(sn, function(s) slot(object@data, s))
+    if (isTRUE(getOption("reproducible.useNewDigestAlgorithm") > 0))
+      dig <- .robustDigest(append(list(dim(object), res(object), crs(object),
+                                       extent(object)), dataSlotsToDigest), length = length, quick = quick,
+                           algo = algo) # don't include object@data -- these are volatile
+    else {
+      if (!requireNamespace("fastdigest", quietly = TRUE))
+        stop(requireNamespaceMsg("fastdigest", "to use options('reproducible.useNewDigestAlgorithm' = FALSE"))
+      dig <- fastdigest::fastdigest(append(list(dim(object), res(object), crs(object),
+                                                extent(object)), dataSlotsToDigest)) # don't include object@data -- these are volatile
+    }
+
+    # Legend
+    sn <- slotNames(object@legend)
+    legendSlotsToDigest <- lapply(sn, function(s) slot(object@legend, s))
+    if (isTRUE(getOption("reproducible.useNewDigestAlgorithm") > 0))
+      dig2 <- .robustDigest(legendSlotsToDigest, length = length, quick = quick,
+                            algo = algo) # don't include object@data -- these are volatile
+    else {
+      if (!requireNamespace("fastdigest", quietly = TRUE))
+        stop(requireNamespaceMsg("fastdigest", "to use options('reproducible.useNewDigestAlgorithm' = FALSE"))
+      dig2 <- fastdigest::fastdigest(legendSlotsToDigest) # don't include object@data -- these are volatile
+    }
+    dig <- c(dig, dig2)
+
+    sn <- slotNames(object@file)
+    sn <- sn[!(sn %in% c("name"))]
+    fileSlotsToDigest <- lapply(sn, function(s) slot(object@file, s))
+    if (isTRUE(getOption("reproducible.useNewDigestAlgorithm") > 0))
+      digFile <- .robustDigest(fileSlotsToDigest, length = length, quick = quick,
+                               algo = algo) # don't include object@file -- these are volatile
+    else {
+      if (!requireNamespace("fastdigest", quietly = TRUE))
+        stop(requireNamespaceMsg("fastdigest", "to use options('reproducible.useNewDigestAlgorithm' = FALSE"))
+      digFile <- fastdigest::fastdigest(fileSlotsToDigest) # don't include object@file -- these are volatile
+    }
+
+    dig <- c(dig, digFile)
+  })
+
+  fns <- Filenames(object, allowMultiple = FALSE)
+  if (length(fns[nchar(fns) > 0])) {
+    # if the Raster is on disk, has the first length characters;
+    isGrd <- endsWith(basename(fns), suffix = ".grd")
+    if (isTRUE(any(isGrd))) {
+      fns[isGrd] <- sub(fns[isGrd], pattern = ".grd$", replacement = ".gri")
+    }
+    # # there is no good reason to use depth = 0, 1, or 2 or more -- but I think 2 is *more* reliable
+    dig2 <- .robustDigest(asPath(fns, 2), length = length, quick = quick, algo = algo)
+    dig <- c(dig, unname(dig2))
+  }
+
+  if (isTRUE(getOption("reproducible.useNewDigestAlgorithm") > 0))
+    dig <- .robustDigest(unlist(dig), length = length, quick = quick, algo = algo)
+  else {
+    if (!requireNamespace("fastdigest", quietly = TRUE))
+      stop(requireNamespaceMsg("fastdigest", "to use options('reproducible.useNewDigestAlgorithm' = FALSE"))
+    dig <- fastdigest::fastdigest(dig)
+  }
+  dig
+}
+
+.digestRasterLayer2 <- function(object, length, algo, quick) {
+  # metadata -- only a few items of the long list because one thing (I don't recall)
+  #  doesn't cache consistently
   sn <- slotNames(object@data)
-  sn <- sn[!(sn %in% c("min", "max", "haveminmax", "names", "isfactor",
-                       "dropped", "nlayers", "fromdisk", "inmemory", "offset", "gain"))]
+  sn <- sn[!(sn %in% c(#"min", "max", "haveminmax", "names", "isfactor",
+    "dropped", "nlayers", "fromdisk", "inmemory"
+    #"offset", "gain"
+  ))]
   dataSlotsToDigest <- lapply(sn, function(s) slot(object@data, s))
   if (isTRUE(getOption("reproducible.useNewDigestAlgorithm")))
-    dig <- digest(append(list(dim(object), res(object), crs(object),
-                         extent(object)), dataSlotsToDigest),
-                algo = algo) # don't include object@data -- these are volatile
-  else
-    dig <- fastdigest(append(list(dim(object), res(object), crs(object),
-                              extent(object)), dataSlotsToDigest)) # don't include object@data -- these are volatile
+    dig <- .robustDigest(append(list(dim(object), res(object), crs(object),
+                                     extent(object)), dataSlotsToDigest), length = length, quick = quick,
+                         algo = algo) # don't include object@data -- these are volatile
+  else {
+    if (!requireNamespace("fastdigest", quietly = TRUE))
+      stop(requireNamespaceMsg("fastdigest", "to use options('reproducible.useNewDigestAlgorithm' = FALSE"))
+    dig <- fastdigest::fastdigest(append(list(dim(object), res(object), crs(object),
+                                              extent(object)), dataSlotsToDigest)) # don't include object@data -- these are volatile
+  }
+
+  # Legend
+  sn <- slotNames(object@legend)
+  legendSlotsToDigest <- lapply(sn, function(s) slot(object@legend, s))
+  if (isTRUE(getOption("reproducible.useNewDigestAlgorithm")))
+    dig2 <- .robustDigest(legendSlotsToDigest, length = length, quick = quick,
+                          algo = algo) # don't include object@data -- these are volatile
+  else {
+    if (!requireNamespace("fastdigest", quietly = TRUE))
+      stop(requireNamespaceMsg("fastdigest", "to use options('reproducible.useNewDigestAlgorithm' = FALSE"))
+    dig2 <- fastdigest::fastdigest(legendSlotsToDigest) # don't include object@data -- these are volatile
+  }
+  dig <- c(dig, dig2)
 
   sn <- slotNames(object@file)
   sn <- sn[!(sn %in% c("name"))]
   fileSlotsToDigest <- lapply(sn, function(s) slot(object@file, s))
   if (isTRUE(getOption("reproducible.useNewDigestAlgorithm")))
-    digFile <- digest(fileSlotsToDigest, algo = algo) # don't include object@file -- these are volatile
-  else
-    digFile <- fastdigest(fileSlotsToDigest) # don't include object@file -- these are volatile
+    digFile <- .robustDigest(fileSlotsToDigest, length = length, quick = quick,
+                             algo = algo) # don't include object@file -- these are volatile
+  else {
+    if (!requireNamespace("fastdigest", quietly = TRUE))
+      stop(requireNamespaceMsg("fastdigest", "to use options('reproducible.useNewDigestAlgorithm' = FALSE"))
+    digFile <- fastdigest::fastdigest(fileSlotsToDigest) # don't include object@file -- these are volatile
+  }
 
   dig <- c(dig, digFile)
   if (nzchar(object@file@name)) {
@@ -983,9 +1010,12 @@ copyFile <- Vectorize(copySingleFile, vectorize.args = c("from", "to"))
   }
 
   if (isTRUE(getOption("reproducible.useNewDigestAlgorithm")))
-    dig <- digest(dig, algo = algo)
-  else
-    dig <- fastdigest(dig)
+    dig <- .robustDigest(unlist(dig), length = length, quick = quick, algo = algo)
+  else {
+    if (!requireNamespace("fastdigest", quietly = TRUE))
+      stop(requireNamespaceMsg("fastdigest", "to use options('reproducible.useNewDigestAlgorithm' = FALSE"))
+    dig <- fastdigest::fastdigest(dig)
+  }
   dig
 }
 
@@ -1075,10 +1105,10 @@ copyFile <- Vectorize(copySingleFile, vectorize.args = c("from", "to"))
     scalls <- sys.calls()
   }
 
-  otherFns <- .grepSysCalls(scalls, pattern = paste0("(test_)|(with_reporter)|(force)|",
-                                             "(eval)|(::)|(\\$)|(\\.\\.)|(standardGeneric)|",
-                                             "(Cache)|(tryCatch)|(doTryCatch)|(withCallingHandlers)|",
-                                             "(FUN)"))
+  patt <- paste(.defaultOtherFunctionsOmit, collapse = ")|(")
+  otherFns <- .grepSysCalls(
+    scalls,
+    pattern = patt)
   if (length(otherFns)) {
     otherFns <- unlist(lapply(scalls[-otherFns], function(x) {
       tryCatch(as.character(x[[1]]), error = function(y) "")
@@ -1100,17 +1130,16 @@ copyFile <- Vectorize(copySingleFile, vectorize.args = c("from", "to"))
   unique(otherFns)
 }
 
-#' @importFrom tools file_path_sans_ext file_ext
 #' @keywords internal
 nextNumericName <- function(string) {
-  theExt <- file_ext(string)
-  saveFilenameSansExt <- file_path_sans_ext(string)
-  finalNumericPattern <- "_[[:digit:]]*$"
+  theExt <- fileExt(string)
+  saveFilenameSansExt <- filePathSansExt(string)
+  finalNumericPattern <- "_[[:digit:]]+$"
   allSimilarFilesInDir <- dir(dirname(saveFilenameSansExt), pattern = basename(saveFilenameSansExt))
   allSimilarFilesInDirSansExt <- if (length(allSimilarFilesInDir) == 0) {
     unique(saveFilenameSansExt)
   } else {
-    unique(file_path_sans_ext(allSimilarFilesInDir))
+    unique(filePathSansExt(allSimilarFilesInDir))
   }
   alreadyHasNumeric <- grepl(allSimilarFilesInDirSansExt, pattern = finalNumericPattern)
   if (isTRUE(any(alreadyHasNumeric))) {
@@ -1146,3 +1175,379 @@ nextNumericName <- function(string) {
   grep(scallsFirstElement, pattern = pattern)
 }
 
+#' @importFrom raster fromDisk
+dealWithClass <- function(obj, cachePath, drv, conn) {
+  # browser(expr = exists("._dealWithClass_1"))
+  outputToSaveIsList <- is(obj, "list") # is.list is TRUE for anything, e.g., data.frame. We only want "list"
+  if (outputToSaveIsList) {
+    rasters <- unlist(lapply(obj, is, "Raster"))
+  } else {
+    rasters <- is(obj, "Raster")
+  }
+  if (any(rasters)) {
+    objOrig <- obj
+    atts <- attributes(obj)
+    # browser(expr = exists("._dealWithClass_2"))
+    if (outputToSaveIsList) {
+      obj[rasters] <- lapply(obj[rasters], function(x)
+        .prepareFileBackedRaster(x, repoDir = cachePath, overwrite = FALSE, drv = drv, conn = conn))
+      isFromDisk <- any(unlist(lapply(obj, function(x)
+        if (is(x, "Raster")) fromDisk(x) else FALSE)))
+    } else {
+      obj <- .prepareFileBackedRaster(obj, repoDir = cachePath,
+                                      overwrite = FALSE, drv = drv, conn = conn)
+      isFromDisk <- fromDisk(obj)
+    }
+
+    # have to reset all these attributes on the rasters as they were undone in prev steps
+    atts$tags <- c(atts$tags, paste("fromDisk", sep = ":", isFromDisk))
+    setattr(obj, "tags", atts$tags)
+    .setSubAttrInList(obj, ".Cache", "newCache", atts$.Cache$newCache)
+    setattr(obj, "call", atts$call)
+
+    if (!identical(attr(obj, ".Cache")$newCache, atts$.Cache$newCache))
+      stop("attributes are not correct 6")
+    if (!identical(attr(obj, "call"), atts$call))
+      stop("attributes are not correct 7")
+    if (!identical(attr(obj, "tags"), atts$tags))
+      stop("attributes are not correct 8")
+
+    if (!is.null(atts[["function"]])) {
+      setattr(obj, "function", atts[["function"]])
+      if (!identical(attr(obj, "function"), atts[["function"]]))
+        stop("There is an unknown error 04")
+    }
+    if (isFromDisk) {
+      if (isTRUE(getOption("reproducible.useNewDigestAlgorithm") < 2)) {
+        obj <- list(origRaster = objOrig, cacheRaster = obj)
+      } else {
+        obj <- list(origRaster = Filenames(objOrig), cacheRaster = obj)
+      }
+
+    }
+
+  }
+  if (any(inherits(obj, "SpatVector"), inherits(obj, "SpatRast"))) {
+    if (!requireNamespace("terra")) stop("Please install terra package")
+
+    obj <- terra::wrap(obj)
+  }
+  obj
+}
+
+.loadedCacheResultMsg <- "loaded cached result from previous"
+
+.loadedMemoisedResultMsg <- "loaded memoised result from previous"
+
+.loadedCacheMsg <- function(root, functionName) {
+  paste0("     ", root," ", functionName, " call, ")
+}
+
+
+
+
+
+
+
+#' A helper function to change the filename slot of \code{Raster*} objects
+#'
+#' This is intended for internal use, though it is exported because other packages
+#' use this. This function exists because when copying file-backed rasters, the
+#' usual mechanism of \code{writeRaster} can be very slow. This function allows
+#' for a user to optionally create a hard link to the old file, give it a new
+#' name, then update the filename slot(s) in the \code{Raster*} class object. This
+#' can be 100s of times faster for large rasters.
+#'
+#' @export
+#' @keywords internal
+#' @param obj An object. This function only has useful methods for \code{Raster*},
+#'   with all other classes being simply a pass-through
+#' @param curFilenames An optional character vector of filenames currently existing
+#'   and that are pointed to in the obj. If omitted, will take from the \code{obj}
+#'   using \code{Filenames(obj)}
+#' @param newFilenames An optional character vector of filenames to use instead of
+#'   the curFilenames. This can also be a single directory, in which case the
+#'   renaming will be given:
+#'   \code{file.path(newFilenames, basename(Filenames(obj, allowMultiple = FALSE)))}
+#' @rdname updateFilenameSlots
+updateFilenameSlots <- function(obj, curFilenames, newFilenames, isStack = NULL) {
+  UseMethod("updateFilenameSlots")
+}
+
+#' @rdname updateFilenameSlots
+#' @export
+#' @keywords internal
+updateFilenameSlots.default <- function(obj, ...)  {
+  obj
+}
+
+#' @rdname updateFilenameSlots
+#' @export
+#' @keywords internal
+updateFilenameSlots.list <- function(obj, ...)  {
+
+  areRasters <- vapply(obj, is, "RasterLayer", FUN.VALUE = logical(1))
+  if (all(areRasters)) {
+    # a separate option for list of RasterLayers because curFilename will be
+    #   as long as all the filenames because there is a method for lists;
+    #   passing this to updateFilaneSlots will fail if it is one RasterLayer
+    #   at a time
+    out <- updateFilenameSlots(raster::stack(obj), ...)
+    out <- raster::unstack(out)
+  } else {
+    out <- lapply(obj, function(o) {
+      updateFilenameSlots(o, ...)
+    })
+  }
+  out
+
+}
+
+#' @rdname updateFilenameSlots
+#' @export
+#' @keywords internal
+updateFilenameSlots.environment <- function(obj, ...)  {
+  if (is.null(names(obj))) {
+    names(obj) <- as.character(seq(obj))
+  }
+  lapply(obj, function(o) {
+    updateFilenameSlots(as.list(o), ...)
+  })
+}
+
+
+#' @rdname updateFilenameSlots
+#' @export
+#' @keywords internal
+updateFilenameSlots.Raster <- function(obj, curFilenames, newFilenames, isStack = NULL) {
+  if (isTRUE(getOption("reproducible.useNewDigestAlgorithm") < 2)) {
+    return(updateFilenameSlots2(obj, curFilenames, newFilenames, isStack))
+  }
+  if (missing(curFilenames)) {
+    curFilenames <- Filenames(obj, allowMultiple = FALSE)
+  }
+
+  if (missing(newFilenames)) stop("newFilenames can't be missing: either new filenames or a single directory")
+  # if newFilenames is a directory
+  areDirs <- dir.exists(newFilenames)
+  if (any(areDirs) && length(newFilenames) == 1) {
+    newFilenames <- file.path(newFilenames, basename(curFilenames))
+  }
+
+  if (length(curFilenames) > 1) {
+    for (i in seq_along(curFilenames)) {
+      if (is.list(obj)) {
+        slot(slot(obj[[i]], "file"), "name") <- newFilenames[i]
+      } else {
+        slot(slot(slot(obj, "layers")[[i]], "file"), "name") <- newFilenames[i]
+      }
+    }
+  } else {
+    if (is.null(isStack)) isStack <- is(obj, "RasterStack")
+    if (!isStack) {
+      slot(slot(obj, "file"), "name") <- newFilenames
+    } else {
+      # aiof <- allInOneFile(obj)
+
+      # if (isTRUE(aiof)) {
+      #   slot(obj, "filename") <- newFilenames
+      # } else {
+      if (length(newFilenames) == 1) {
+        newFilenames <- rep(newFilenames, nlayers(obj))
+      }
+      for (i in seq_len(nlayers(obj))) {
+        whFilename <- unique(match(withoutFinalNumeric(basename(newFilenames)),
+                                   withoutFinalNumeric(basename(curFilenames))))
+        isNAwhFn <- is.na(whFilename)
+        if (any(isNAwhFn))
+          whFilename <- i
+        slot(slot(obj@layers[[i]], "file"), "name") <- newFilenames[whFilename]
+      }
+      # }
+
+
+    }
+  }
+  obj
+}
+
+updateFilenameSlots2 <- function(obj, curFilenames, newFilenames, isStack = NULL) {
+  whichNotGri <- grep("\\.gri$", curFilenames, invert = TRUE)
+  curFilenamesNotGri <- curFilenames[whichNotGri]
+  newFilenamesNotGri <- newFilenames[whichNotGri]
+  if (length(curFilenamesNotGri) > 1 ) {
+    for (i in seq_along(curFilenamesNotGri)) {
+      slot(slot(slot(obj, "layers")[[i]], "file"), "name") <- newFilenamesNotGri[i]
+    }
+  } else {
+    if (is.null(isStack)) isStack <- is(obj, "RasterStack")
+    if (!isStack) {
+      slot(slot(obj, "file"), "name") <- newFilenamesNotGri
+    } else {
+      for (i in seq_len(nlayers(obj))) {
+        if (fromDisk(obj[[i]])) {
+          whFilename <- match(withoutFinalNumeric(basename(newFilenamesNotGri)),
+                              withoutFinalNumeric(basename(curFilenamesNotGri)))
+          slot(slot(obj@layers[[i]], "file"), "name") <- newFilenamesNotGri[whFilename]
+        }
+      }
+    }
+  }
+  obj
+}
+
+#' Copy the file-backing of a file-backed Raster* object
+#'
+#' Rasters are sometimes file-based, so the normal save and copy and assign
+#' mechanisms in R don't work for saving, copying and assigning.
+#' This function creates an explicit file copy of the file that is backing the raster,
+#' and changes the pointer (i.e., \code{filename(object)}) so that it is pointing
+#' to the new file.
+#'
+#' @param obj The raster object to save to the repository.
+#'
+#' @param repoDir Character denoting an existing directory in which an artifact will be saved.
+#'
+#' @param overwrite Logical. Should the raster be saved to disk, overwriting existing file.
+#'
+#' @param ... Not used
+#'
+#' @return A raster object and its newly located file backing.
+#'         Note that if this is a legitimate Cache repository, the new location
+#'         will be a subdirectory called \file{rasters/} of \file{repoDir/}.
+#'         If this is not a repository, the new location will be within \code{repoDir}.
+#'
+#' @author Eliot McIntire
+#' @export
+#' @importFrom digest digest
+#' @importFrom methods is selectMethod slot slot<-
+#' @importFrom raster dataType filename hasValues inMemory nlayers writeRaster
+#' @inheritParams Cache
+#' @rdname prepareFileBackedRaster
+#' @examples
+#' library(raster)
+#' # make a cache repository
+#' a <- Cache(rnorm, 1)
+#'
+#' r <- raster(extent(0,10,0,10), vals = 1:100)
+#'
+#' # write to disk manually -- will be in tempdir()
+#' r <- writeRaster(r, file = tempfile())
+#'
+#' # copy it to the cache repository
+#' r <- .prepareFileBackedRaster(r, tempdir())
+#'
+#' r # now in "rasters" subfolder of tempdir()
+#'
+.prepareFileBackedRaster <- function(obj, repoDir = NULL, overwrite = FALSE,
+                                     drv = getOption("reproducible.drv", RSQLite::SQLite()),
+                                     conn = getOption("reproducible.conn", NULL),
+                                     ...) {
+  if (isTRUE(getOption("reproducible.useNewDigestAlgorithm") < 2)) {
+    return(.prepareFileBackedRaster2(obj, repoDir = repoDir, overwrite = overwrite,
+                                     drv = drv, conn = conn, ...))
+  }
+  fnsAll <- Filenames(obj)
+  fnsShort <- Filenames(obj, FALSE)
+  if (!all(nchar(fnsAll) == 0)) {
+    repoDir <- checkPath(repoDir, create = TRUE)
+    isRepo <- CacheIsACache(cachePath = repoDir, drv = drv, conn = conn)
+    # thoseWithGRI <- endsWith(fnsAll, "gri")
+    fns <- fnsAll
+    FB <- nchar(fns) > 0
+    ########################
+    if (any(!file.exists(fns[FB]))) {
+      FBshort <- nchar(fnsShort) > 0
+      fnsOnly <- fnsShort[FBshort]
+      badFileNames <- fnsOnly[!file.exists(fnsOnly)]
+
+      trySaveFilename <- badFileNames
+      if (any(grepl(basename(repoDir), badFileNames))) {
+        # File is in wrong folder, usually the result of a copy of cache between 2 machines
+        splittedFilenames <- strsplit(badFileNames, split = basename(repoDir))
+        trySaveFilename <- if (length(splittedFilenames) == 1) {
+          normalizePath(
+            file.path(repoDir, splittedFilenames[[1]][[length(splittedFilenames[[1]])]]),
+            winslash = "/", mustWork = FALSE)
+        } else {
+          splittedFilenames2 <- lapply(splittedFilenames, function(x) {
+            ifelse(length(x), x[length(x)], "")
+          })
+          normalizePath(file.path(repoDir, splittedFilenames2), winslash = "/", mustWork = FALSE)
+        }
+      }
+      if (any(!file.exists(trySaveFilename))) {
+        stop("The following file-backed rasters are supposed to be on disk ",
+             "but appear to have been deleted:\n",
+             paste("    ", badFileNames, collapse = "\n"),
+             ". The most likely reason is that two functions had the same output ",
+             "and one of them was removed with clearCache(...). ",
+             "The best solution to this is never have two functions create the same ",
+             "file-backed raster.")
+      } else {
+        obj <- updateFilenameSlots(obj, curFilenames = fnsOnly, trySaveFilename)
+        fnsAll <- fns <- Filenames(obj)
+      }
+    }
+    #################
+
+
+    saveFilename <- fns
+    bn <- basename(fns)
+    bnFB <- bn[FB]
+
+
+    saveFilename[FB] <- if (isRepo) {
+      file.path(repoDir, "rasters"[isRepo], bnFB)
+    } else {
+      file.path(repoDir, bnFB)
+    }
+    dirForNewFiles <- unique(dirname(saveFilename[FB]))
+    checkPath(dirForNewFiles, create = TRUE)
+    saveFilename <- normPath(saveFilename)
+    saveFilenamePreNumeric <- saveFilename
+    exist <- file.exists(saveFilename)
+    if (any(exist)) {
+      saveFilename[exist] <- unlist(lapply(saveFilename[exist], nextNumericName))
+    }
+    FBAll <- nchar(fnsAll) > 0
+
+    out <- hardLinkOrCopy(from = fnsAll[FBAll], to = saveFilename[FBAll])
+
+    # out <- Map(from = fnsAll[FBAll], to = saveFilename[FBAll],
+    #     function(from, to) {
+    #   linkTry <- suppressWarningsSpecific(file.link(from = from, to = to),
+    #                                   falseWarnings = "already exists|Invalid cross-device")
+    #   if (!linkTry)
+    #     linkTry <- copyFile(from = from, to = to, overwrite = TRUE, silent = TRUE)
+    #   linkTry
+    # })
+
+    # FBshort <- nchar(fnsShort) > 0
+    saveFilenamesToUpdateSlot <- saveFilename[basename(saveFilenamePreNumeric) %in%
+                                                basename(fnsShort)]
+    obj <- updateFilenameSlots(obj, fnsShort, saveFilenamesToUpdateSlot)
+
+  }
+  obj
+}
+
+allInOneFile <- function(obj) {
+  aiof <- TRUE
+  if (is(obj, "RasterStack")) {
+    aiof <- FALSE
+    numFiles <- sum(nchar(unique(Filenames(obj)))>0)
+    if (numFiles > 0) {
+      innerFilenames <- unlist(lapply(obj@layers, filename))
+      aiof <- isTRUE(sum(nchar(innerFilenames)>0) == length(obj@layers))
+    }
+  }
+  aiof
+}
+
+withoutFinalNumeric <- function(string) {
+  ext <- fileExt(string)
+  string1 <- filePathSansExt(string)
+  woNumeric <- gsub("^(.+)\\_[[:digit:]]+$", "\\1", string1)
+  paste0(woNumeric, ".", ext)
+}

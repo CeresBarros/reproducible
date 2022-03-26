@@ -13,7 +13,10 @@ extractFromArchive(
   needChecksums = 0,
   filesExtracted = character(),
   checkSumFilePath = character(),
-  quick = FALSE
+  quick = FALSE,
+  verbose = getOption("reproducible.verbose", 1),
+  .tempPath,
+  ...
 )
 }
 \arguments{
@@ -38,6 +41,15 @@ extracted. Defaults to the archive directory.}
 \item{checkSumFilePath}{The full path to the checksum.txt file}
 
 \item{quick}{Passed to \code{Checksums}}
+
+\item{verbose}{Numeric, -1 silent (where possible), 0 being very quiet,
+1 showing more messaging, 2 being more messaging, etc.
+Default is 1. Above 3 will output much more information about the internals of
+Caching, which may help diagnose Caching challenges. Can set globally with an
+option, e.g., \code{options('reproducible.verbose' = 0) to reduce to minimal}}
+
+\item{.tempPath}{Optional temporary path for internal file intermediate steps.
+Will be cleared on.exit from this function.}
 
 \item{...}{Passed to \code{unzip} or \code{untar}, e.g., \code{overwrite}}
 }

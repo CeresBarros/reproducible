@@ -3,45 +3,65 @@
 \name{Copy}
 \alias{Copy}
 \alias{Copy,ANY-method}
+\alias{Copy,SQLiteConnection-method}
 \alias{Copy,data.table-method}
-\alias{Copy,environment-method}
 \alias{Copy,list-method}
+\alias{Copy,refClass-method}
 \alias{Copy,data.frame-method}
 \alias{Copy,Raster-method}
 \title{Recursive copying of nested environments, and other "hard to copy" objects}
 \usage{
-Copy(object, filebackedDir, ...)
+Copy(object, ...)
 
-\S4method{Copy}{ANY}(object, filebackedDir, ...)
+\S4method{Copy}{ANY}(object, ...)
 
-\S4method{Copy}{data.table}(object, filebackedDir, ...)
+\S4method{Copy}{SQLiteConnection}(object, ...)
 
-\S4method{Copy}{environment}(object, filebackedDir, ...)
+\S4method{Copy}{data.table}(object, ...)
 
-\S4method{Copy}{list}(object, filebackedDir, ...)
+\S4method{Copy}{list}(object, ...)
 
-\S4method{Copy}{data.frame}(object, filebackedDir, ...)
+\S4method{Copy}{refClass}(object, ...)
 
-\S4method{Copy}{Raster}(object, filebackedDir, ...)
+\S4method{Copy}{data.frame}(object, ...)
+
+\S4method{Copy}{Raster}(
+  object,
+  filebackedDir,
+  drv = getOption("reproducible.drv", RSQLite::SQLite()),
+  conn = getOption("reproducible.conn", NULL),
+  ...
+)
 }
 \arguments{
 \item{object}{An R object (likely containing environments) or an environment.}
 
+\item{...}{Only used for custom Methods}
+
 \item{filebackedDir}{A directory to copy any files that are backing R objects,
 currently only valid for \code{Raster} classes. Defaults
-to \code{tempdir()}, which is unlikely to be very useful.
+to \code{.reproducibleTempPath()}, which is unlikely to be very useful.
 Can be \code{NULL}, which means that the file will not be
 copied and could therefore cause a collision as the
 pre-copied object and post-copied object would have the same
 file backing them.}
 
-\item{...}{Only used for custom Methods}
+\item{drv}{an object that inherits from \linkS4class{DBIDriver},
+or an existing \linkS4class{DBIConnection}
+object (in order to clone an existing connection).}
+
+\item{conn}{A \linkS4class{DBIConnection} object, as returned by
+\code{\link[DBI:dbConnect]{dbConnect()}}.}
 }
 \description{
 When copying environments and all the objects contained within them, there are
 no copies made: it is a pass-by-reference operation. Sometimes, a deep copy is
 needed, and sometimes, this must be recursive (i.e., environments inside
 environments).
+}
+\details{
+To create a new Copy method for a class that needs its own method, try something like
+shown in example and put it in your package (or other R structure).
 }
 \examples{
 e <- new.env()
@@ -68,6 +88,12 @@ g$one
 f$one
 e$one
 
+\dontrun{
+setMethod("Copy", signature = "the class", # where = specify here if not in a package,
+  definition = function(object, filebackendDir, ...) {
+  # write deep copy code here
+})
+}
 }
 \seealso{
 \code{\link{.robustDigest}}

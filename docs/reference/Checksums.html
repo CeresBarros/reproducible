@@ -10,23 +10,27 @@
 
 
 <!-- jquery -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
 <!-- Bootstrap -->
-<link href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/3.3.7/flatly/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" />
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/3.4.0/flatly/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" />
 
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha256-U5ZEeKfGNOja007MMD3YBI0A3OSZOQbeG6z2f2Y0hu8=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha256-nuL8/2cJ5NDSSwnKD8VqreErSWHtnEP9E7AySL+1ev4=" crossorigin="anonymous"></script>
+
+<!-- bootstrap-toc -->
+<link rel="stylesheet" href="../bootstrap-toc.css">
+<script src="../bootstrap-toc.js"></script>
 
 <!-- Font Awesome icons -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.7.1/css/all.min.css" integrity="sha256-nAmazAk6vS34Xqo0BSrTb+abbtFlgsFK7NKSi6o7Y78=" crossorigin="anonymous" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.7.1/css/v4-shims.min.css" integrity="sha256-6qHlizsOWFskGlwVOKuns+D1nB6ssZrHQrNj1wGplHc=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous" />
 
 <!-- clipboard.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.4/clipboard.min.js" integrity="sha256-FiZwavyI2V6+EXO1U+xzLG3IKldpiTFf3153ea9zikQ=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script>
 
 <!-- headroom.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.9.4/headroom.min.js" integrity="sha256-DJFC1kqIhelURkuza0AvYal5RxMtpzLjFhsnVIeuk+U=" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.9.4/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script>
 
 <!-- pkgdown -->
 <link href="../pkgdown.css" rel="stylesheet">
@@ -39,7 +43,6 @@
 <meta property="og:description" content="Verify (and optionally write) checksums.
 Checksums are computed using .digest, which is simply a
 wrapper around digest::digest." />
-<meta name="twitter:card" content="summary" />
 
 
 
@@ -67,7 +70,7 @@ wrapper around digest::digest." />
 
   </head>
 
-  <body>
+  <body data-spy="scroll" data-target="#toc">
     <div class="container template-reference-topic">
       <header>
       <div class="navbar navbar-default navbar-fixed-top" role="navigation">
@@ -81,7 +84,7 @@ wrapper around digest::digest." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">reproducible</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.2.11</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.2.7</span>
       </span>
     </div>
 
@@ -89,7 +92,7 @@ wrapper around digest::digest." />
       <ul class="nav navbar-nav">
         <li>
   <a href="../index.html">
-    <span class="fas fa fas fa-home fa-lg"></span>
+    <span class="fas fa-home fa-lg"></span>
      
   </a>
 </li>
@@ -104,6 +107,9 @@ wrapper around digest::digest." />
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
+      <a href="../articles/Cache-using-postgresql.html">Using alternate database backends for Cache</a>
+    </li>
+    <li>
       <a href="../articles/Intro-to-Cache.html">Introduction to Cache</a>
     </li>
   </ul>
@@ -114,8 +120,8 @@ wrapper around digest::digest." />
       </ul>
       <ul class="nav navbar-nav navbar-right">
         <li>
-  <a href="https://github.com/PredictiveEcology/reproducible">
-    <span class="fab fa fab fa-github fa-lg"></span>
+  <a href="https://github.com/PredictiveEcology/reproducible/">
+    <span class="fab fa-github fa-lg"></span>
      
   </a>
 </li>
@@ -139,38 +145,41 @@ wrapper around digest::digest." />
 
     <div class="ref-description">
     <p>Verify (and optionally write) checksums.
-Checksums are computed using <code><a href='digest.html'>.digest</a></code>, which is simply a
+Checksums are computed using <code><a href='.digest.html'>.digest</a></code>, which is simply a
 wrapper around <code><a href='https://rdrr.io/pkg/digest/man/digest.html'>digest::digest</a></code>.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>Checksums</span>(
-  <span class='no'>path</span>,
-  <span class='no'>write</span>,
-  <span class='kw'>quickCheck</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>,
-  <span class='kw'>checksumFile</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/file.path.html'>file.path</a></span>(<span class='no'>path</span>, <span class='st'>"CHECKSUMS.txt"</span>),
-  <span class='kw'>files</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
-  <span class='no'>...</span>
-)
+    <pre class="usage"><span class='fu'>Checksums</span><span class='op'>(</span>
+  <span class='va'>path</span>,
+  <span class='va'>write</span>,
+  quickCheck <span class='op'>=</span> <span class='cn'>FALSE</span>,
+  checksumFile <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/file.path.html'>file.path</a></span><span class='op'>(</span><span class='va'>path</span>, <span class='st'>"CHECKSUMS.txt"</span><span class='op'>)</span>,
+  files <span class='op'>=</span> <span class='cn'>NULL</span>,
+  verbose <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/options.html'>getOption</a></span><span class='op'>(</span><span class='st'>"reproducible.verbose"</span>, <span class='fl'>1</span><span class='op'>)</span>,
+  <span class='va'>...</span>
+<span class='op'>)</span>
 
 <span class='co'># S4 method for character,logical</span>
-<span class='fu'>Checksums</span>(
-  <span class='no'>path</span>,
-  <span class='no'>write</span>,
-  <span class='kw'>quickCheck</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>,
-  <span class='kw'>checksumFile</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/file.path.html'>file.path</a></span>(<span class='no'>path</span>, <span class='st'>"CHECKSUMS.txt"</span>),
-  <span class='kw'>files</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
-  <span class='no'>...</span>
-)
+<span class='fu'>Checksums</span><span class='op'>(</span>
+  <span class='va'>path</span>,
+  <span class='va'>write</span>,
+  quickCheck <span class='op'>=</span> <span class='cn'>FALSE</span>,
+  checksumFile <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/file.path.html'>file.path</a></span><span class='op'>(</span><span class='va'>path</span>, <span class='st'>"CHECKSUMS.txt"</span><span class='op'>)</span>,
+  files <span class='op'>=</span> <span class='cn'>NULL</span>,
+  verbose <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/options.html'>getOption</a></span><span class='op'>(</span><span class='st'>"reproducible.verbose"</span>, <span class='fl'>1</span><span class='op'>)</span>,
+  <span class='va'>...</span>
+<span class='op'>)</span>
 
 <span class='co'># S4 method for character,missing</span>
-<span class='fu'>Checksums</span>(
-  <span class='no'>path</span>,
-  <span class='no'>write</span>,
-  <span class='kw'>quickCheck</span> <span class='kw'>=</span> <span class='fl'>FALSE</span>,
-  <span class='kw'>checksumFile</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/file.path.html'>file.path</a></span>(<span class='no'>path</span>, <span class='st'>"CHECKSUMS.txt"</span>),
-  <span class='kw'>files</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
-  <span class='no'>...</span>
-)</pre>
+<span class='fu'>Checksums</span><span class='op'>(</span>
+  <span class='va'>path</span>,
+  <span class='va'>write</span>,
+  quickCheck <span class='op'>=</span> <span class='cn'>FALSE</span>,
+  checksumFile <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/file.path.html'>file.path</a></span><span class='op'>(</span><span class='va'>path</span>, <span class='st'>"CHECKSUMS.txt"</span><span class='op'>)</span>,
+  files <span class='op'>=</span> <span class='cn'>NULL</span>,
+  verbose <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/options.html'>getOption</a></span><span class='op'>(</span><span class='st'>"reproducible.verbose"</span>, <span class='fl'>1</span><span class='op'>)</span>,
+  <span class='va'>...</span>
+<span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -209,6 +218,14 @@ This may be very important if there are many files listed in a
 <code>CHECKSUMS.txt</code> file, but only a few are to be checksummed.</p></td>
     </tr>
     <tr>
+      <th>verbose</th>
+      <td><p>Numeric, -1 silent (where possible), 0 being very quiet,
+1 showing more messaging, 2 being more messaging, etc.
+Default is 1. Above 3 will output much more information about the internals of
+Caching, which may help diagnose Caching challenges. Can set globally with an
+option, e.g., <code>options('reproducible.verbose' = 0) to reduce to minimal</code></p></td>
+    </tr>
+    <tr>
       <th>...</th>
       <td><p>Passed to <code><a href='https://rdrr.io/pkg/digest/man/digest.html'>digest</a></code> and <code><a href='https://rdrr.io/r/utils/write.table.html'>write.table</a></code>.
 For <code>digest</code>, the notable argument is <code>algo</code>. For <code>write.table</code>,
@@ -231,35 +248,33 @@ platforms. Recent versions use a different (faster) algorithm and only require
 one checksum value per file.
 To update your <code class="file">CHECKSUMS.txt</code> files using the new algorithm, see
 <a href='https://github.com/PredictiveEcology/SpaDES/issues/295#issuecomment-246513405'>https://github.com/PredictiveEcology/SpaDES/issues/295#issuecomment-246513405</a>.</p>
+    <h2 class="hasAnchor" id="author"><a class="anchor" href="#author"></a>Author</h2>
+
+    <p>Alex Chubaty</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'><span class='kw'>if</span> (<span class='fl'>FALSE</span>) {
-<span class='no'>moduleName</span> <span class='kw'>&lt;-</span> <span class='st'>"my_module"</span>
-<span class='no'>modulePath</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/file.path.html'>file.path</a></span>(<span class='st'>"path"</span>, <span class='st'>"to"</span>, <span class='st'>"modules"</span>)
+    <pre class="examples"><div class='input'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>{</span>
+<span class='va'>moduleName</span> <span class='op'>&lt;-</span> <span class='st'>"my_module"</span>
+<span class='va'>modulePath</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/file.path.html'>file.path</a></span><span class='op'>(</span><span class='st'>"path"</span>, <span class='st'>"to"</span>, <span class='st'>"modules"</span><span class='op'>)</span>
 
 <span class='co'>## verify checksums of all data files</span>
-<span class='fu'>Checksums</span>(<span class='no'>moduleName</span>, <span class='no'>modulePath</span>)
+<span class='fu'>Checksums</span><span class='op'>(</span><span class='va'>moduleName</span>, <span class='va'>modulePath</span><span class='op'>)</span>
 
 <span class='co'>## write new CHECKSUMS.txt file</span>
 
 <span class='co'># 1. verify that all data files are present (and no extra files are present)</span>
-<span class='fu'><a href='https://rdrr.io/r/base/list.files.html'>list.files</a></span>(<span class='fu'><a href='https://rdrr.io/r/base/file.path.html'>file.path</a></span>(<span class='no'>modulePath</span>, <span class='no'>moduleName</span>, <span class='st'>"data"</span>))
+<span class='fu'><a href='https://rdrr.io/r/base/list.files.html'>list.files</a></span><span class='op'>(</span><span class='fu'><a href='https://rdrr.io/r/base/file.path.html'>file.path</a></span><span class='op'>(</span><span class='va'>modulePath</span>, <span class='va'>moduleName</span>, <span class='st'>"data"</span><span class='op'>)</span><span class='op'>)</span>
 
 <span class='co'># 2. calculate file checksums and write to file (this will overwrite CHECKSUMS.txt)</span>
-<span class='fu'>Checksums</span>(<span class='no'>moduleName</span>, <span class='no'>modulePath</span>, <span class='kw'>write</span> <span class='kw'>=</span> <span class='fl'>TRUE</span>)
-}</div></pre>
-  </div>
-  <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
-    <h2>Contents</h2>
-    <ul class="nav nav-pills nav-stacked">
-      <li><a href="#arguments">Arguments</a></li>
-      <li><a href="#value">Value</a></li>
-      <li><a href="#note">Note</a></li>
-      <li><a href="#examples">Examples</a></li>
-    </ul>
+<span class='fu'>Checksums</span><span class='op'>(</span><span class='va'>moduleName</span>, <span class='va'>modulePath</span>, write <span class='op'>=</span> <span class='cn'>TRUE</span><span class='op'>)</span>
+<span class='op'>}</span>
 
-    <h2>Author</h2>
-    <p>Alex Chubaty</p>
+</div></pre>
+  </div>
+  <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
+    <nav id="toc" data-toggle="toc" class="sticky-top">
+      <h2 data-toc-skip>Contents</h2>
+    </nav>
   </div>
 </div>
 
@@ -270,7 +285,7 @@ To update your <code class="file">CHECKSUMS.txt</code> files using the new algor
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.4.1.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.6.1.</p>
 </div>
 
       </footer>

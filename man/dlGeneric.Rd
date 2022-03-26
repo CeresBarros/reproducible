@@ -4,7 +4,12 @@
 \alias{dlGeneric}
 \title{Download file from generic source url}
 \usage{
-dlGeneric(url, needChecksums)
+dlGeneric(
+  url,
+  needChecksums,
+  destinationPath,
+  verbose = getOption("reproducible.verbose", 1)
+)
 }
 \arguments{
 \item{url}{The url (link) to the file.}
@@ -12,6 +17,20 @@ dlGeneric(url, needChecksums)
 \item{needChecksums}{Logical indicating whether to generate checksums.
 
 ## TODO: add overwrite arg to the function?}
+
+\item{destinationPath}{Character string of a directory in which to download
+and save the file that comes from \code{url} and is also where the function
+will look for \code{archive} or \code{targetFile}. NOTE (still experimental):
+To prevent repeated downloads in different locations, the user can also set
+\code{options("reproducible.inputPaths")} to one or more local file paths to
+search for the file before attempting to download. Default for that option is
+\code{NULL} meaning do not search locally.}
+
+\item{verbose}{Numeric, -1 silent (where possible), 0 being very quiet,
+1 showing more messaging, 2 being more messaging, etc.
+Default is 1. Above 3 will output much more information about the internals of
+Caching, which may help diagnose Caching challenges. Can set globally with an
+option, e.g., \code{options('reproducible.verbose' = 0) to reduce to minimal}}
 }
 \description{
 Download file from generic source url

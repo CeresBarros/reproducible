@@ -5,6 +5,7 @@
 \alias{writeOutputs.Raster}
 \alias{writeOutputs.Spatial}
 \alias{writeOutputs.sf}
+\alias{writeOutputs.quosure}
 \alias{writeOutputs.default}
 \title{Write module inputs on disk}
 \usage{
@@ -19,6 +20,7 @@ writeOutputs(
   x,
   filename2 = NULL,
   overwrite = getOption("reproducible.overwrite", FALSE),
+  verbose = getOption("reproducible.verbose", 1),
   ...
 )
 
@@ -33,8 +35,11 @@ writeOutputs(
   x,
   filename2 = NULL,
   overwrite = getOption("reproducible.overwrite", FALSE),
+  verbose = getOption("reproducible.verbose", 1),
   ...
 )
+
+\method{writeOutputs}{quosure}(x, filename2, ...)
 
 \method{writeOutputs}{default}(x, filename2, ...)
 }
@@ -49,6 +54,12 @@ writeOutputs(
 
 \item{...}{Passed into \code{\link[raster]{shapefile}} or
 \code{\link[raster]{writeRaster}} or \code{\link[sf]{st_write}}}
+
+\item{verbose}{Numeric, -1 silent (where possible), 0 being very quiet,
+1 showing more messaging, 2 being more messaging, etc.
+Default is 1. Above 3 will output much more information about the internals of
+Caching, which may help diagnose Caching challenges. Can set globally with an
+option, e.g., \code{options('reproducible.verbose' = 0) to reduce to minimal}}
 }
 \description{
 Can be used to write prepared inputs on disk.
@@ -66,7 +77,7 @@ coords1 <- structure(c(-123.98, -117.1, -80.2, -100, -123.98, 60.9, 67.73, 65.58
 Sr1 <- Polygon(coords1)
 Srs1 <- Polygons(list(Sr1), "s1")
 shpEcozone <- SpatialPolygons(list(Srs1), 1L)
-crs(shpEcozone) <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+crs(shpEcozone) <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
 
 # make a "study area" that is subset of larger dataset
 coords <- structure(c(-118.98, -116.1, -99.2, -106, -118.98, 59.9, 65.73, 63.58, 54.79, 59.9),
@@ -74,12 +85,11 @@ coords <- structure(c(-118.98, -116.1, -99.2, -106, -118.98, 59.9, 65.73, 63.58,
 Sr1 <- Polygon(coords)
 Srs1 <- Polygons(list(Sr1), "s1")
 StudyArea <- SpatialPolygons(list(Srs1), 1L)
-crs(StudyArea) <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
-#'
-#'
+crs(StudyArea) <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+
 ##########
 shpEcozonePostProcessed <- postProcess(shpEcozone, studyArea = StudyArea)
-#'
+
 # Try manually, individual pieces
 shpEcozoneReprojected <- projectInputs(shpEcozone, StudyArea)
 shpEcozoneCropped <- cropInputs(shpEcozone, StudyArea)

@@ -3,19 +3,32 @@ test_that("all exported functions have examples", {
   omit <- which(fns == "cache") ## cache is deprecated, so omit it
 
   ## for debugging only:
-  tmpDir <- "~/tmp"
+  tmpDir <- if (grepl("VIC-", Sys.info()["nodename"]))  {
+    checkPath("~/tmp", create = TRUE)
+  } else {
+    checkPath(tempdir(), create = TRUE)
+  }
   tmpExFile <- file.path(tmpDir, "test-examples-out.txt")
-  if (!dir.exists(tmpDir)) dir.create(tmpDir, recursive = TRUE)
+
   if (grepl("VIC-", Sys.info()["nodename"]))  {
-     cat("#START##############\n", file = tmpExFile, append = FALSE)
-  #   cat(fns[-omit], sep = "\n", file = tmpExFile, append = TRUE)
-  #   cat("#END##############\n", file = tmpExFile, append = TRUE)
+    cat("#START##############\n", file = tmpExFile, append = FALSE)
+    # cat(fns[-omit], sep = "\n", file = tmpExFile, append = TRUE)
+    # cat("#END##############\n", file = tmpExFile, append = TRUE)
   }
 
-  exFiles <- normalizePath(dir("../../man", full.names = TRUE))
+  manDir <- if (dir.exists("../../man")) {
+    "../../man" ## if called during devtools::check()
+  } else if (dir.exists("./man")) {
+    "./man" ## if called during devtools::test()
+  } else {
+    system.file("man", package = "reproducible")
+  }
+  exFiles <- list.files(manDir, full.names = TRUE, pattern = "[.]Rd$") %>%
+    normalizePath(.)
+
   # use for loop as it keeps control at top level
   owd <- getwd()
-  tmpdir <- file.path(tempdir(), "test_Examples") %>% checkPath(create = TRUE)
+  tmpdir <- tempdir2("test_Examples") %>% checkPath(create = TRUE)
   setwd(tmpdir)
   on.exit({
     unlink(tmpdir, recursive = TRUE)
@@ -35,4 +48,3 @@ test_that("all exported functions have examples", {
     test_example(file)
   }
 })
-

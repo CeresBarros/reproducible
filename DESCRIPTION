@@ -1,81 +1,98 @@
 Package: reproducible
 Type: Package
 Title: A Set of Tools that Enhance Reproducibility Beyond Package Management
-Description: Collection of high-level, robust, machine- and OS-independent tools
+Description: Collection of high-level, machine- and OS-independent tools
     for making deeply reproducible and reusable content in R.
-    This includes light weight package management (similar to 'packrat' and
-    'checkpoint', but more flexible, lightweight, simpler yet less tested than both), 
-    tools for caching, downloading and verifying or writing checksums, post-processing 
-    of common spatial datasets, and accessing GitHub repositories. 
-    Some features are still under active development.
+    The two workhorse functions are Cache and prepInputs; 
+    these allow for: nested caching, robust to environments, and objects with
+    environments (like functions); and data retrieval and processing 
+    in continuous workflow environments. In all cases,
+    efforts are made to make the first and subsequent calls of functions have 
+    the same result, but vastly faster at subsequent times by way of checksums
+    and digesting. Several features are still under active development, including
+    cloud storage of cached objects, allowing for sharing between users. Several
+    advanced options are available, see ?reproducibleOptions.
 SystemRequirements: 'unrar' (Linux/macOS) or '7-Zip' (Windows) to work with '.rar' files.
 URL: 
     https://reproducible.predictiveecology.org,
     https://github.com/PredictiveEcology/reproducible
-Date: 2019-11-17
-Version: 0.2.11
-Authors@R: c(
-    person("Eliot J B", "McIntire", email = "eliot.mcintire@canada.ca",
-    role = c("aut", "cre"), comment = c(ORCID = "0000-0002-6914-8316")),
-    person("Alex M", "Chubaty", email = "alex.chubaty@gmail.com",
-    role = c("aut"), comment = c(ORCID = "0000-0001-7146-8135")),
-    person("Tati", "Micheletti", email = "tati.micheletti@gmail.com",
-    role = c("ctb"), comment = c(ORCID = "0000-0003-4838-8342")),
-    person("Ceres", "Barros", email = "cbarros@mail.ubc.ca",
-    role = c("ctb"), comment = c(ORCID = "0000-0003-4036-977X")),
-    person("Ian", "Eddy", email = "ian.eddy@canada.com",
-    role = c("ctb"), comment = c(ORCID = "0000-0001-7397-2116")),
-    person("Her Majesty the Queen in Right of Canada, as represented by the Minister of Natural Resources Canada",
-    role = "cph")
-    )
+Date: 2021-09-26
+Version: 1.2.8
+Authors@R: 
+    c(person(given = "Eliot J B",
+             family = "McIntire",
+             role = c("aut", "cre"),
+             email = "eliot.mcintire@canada.ca",
+             comment = c(ORCID = "0000-0002-6914-8316")),
+      person(given = "Alex M",
+             family = "Chubaty",
+             role = "aut",
+             email = "achubaty@for-cast.ca",
+             comment = c(ORCID = "0000-0001-7146-8135")),
+      person(given = "Tati",
+             family = "Micheletti",
+             role = "ctb",
+             email = "tati.micheletti@gmail.com",
+             comment = c(ORCID = "0000-0003-4838-8342")),
+      person(given = "Ceres",
+             family = "Barros",
+             role = "ctb",
+             email = "cbarros@mail.ubc.ca",
+             comment = c(ORCID = "0000-0003-4036-977X")),
+      person(given = "Ian",
+             family = "Eddy",
+             role = "ctb",
+             email = "ian.eddy@canada.com",
+             comment = c(ORCID = "0000-0001-7397-2116")),
+      person(given = "Her Majesty the Queen in Right of Canada, as represented by the Minister of Natural Resources Canada",
+             role = "cph"))
 Depends:
-    R (>= 3.5)
+    R (>= 3.6)
 Imports:
-    archivist (>= 2.1.2),
-    backports,
-    crayon,
     data.table (>= 1.10.4),
+    DBI,
     digest,
-    dplyr,
-    fastdigest,
-    fasterize,
     fpCompare,
-    gdalUtils,
-    git2r (>= 0.18),
-    googledrive,
-    httr,
+    gdalUtilities,
+    glue,
     magrittr,
-    memoise,
     methods,
-    parallel,
-    quickPlot,
-    R.utils,
+    Require,
     raster,
-    RCurl (>= 1.95-4.8),
-    remotes,
-    rgdal,
-    rgeos,
+    RSQLite,
     rlang,
-    sf,
-    sp,
-    testthat,
-    tools,
-    utils,
-    versions
+    sp (>= 1.4-2),
+    utils
 Suggests:
     covr,
+    crayon,
+    fastdigest,
+    fasterize,
     future,
+    gdalUtils,
+    googledrive,
+    httr,
+    lwgeom,
+    qs,
     knitr,
+    parallel,
+    RCurl (>= 1.95-4.8),
+    rgdal,
+    rgeos,
     rmarkdown,
-    TimeWarp
+    sf,
+    stats,
+    terra,
+    testthat
 Encoding: UTF-8
 Language: en-CA
 License: GPL-3
 VignetteBuilder: knitr, rmarkdown
 BugReports: https://github.com/PredictiveEcology/reproducible/issues
 ByteCompile: yes
-RoxygenNote: 7.0.0
+RoxygenNote: 7.1.1
 Collate: 
+    'DBI.R'
     'cache-helpers.R'
     'cache-internals.R'
     'cache-tools.R'
@@ -84,7 +101,6 @@ Collate:
     'checksums.R'
     'cloud.R'
     'cloudOld.R'
-    'consistentPaths.R'
     'convertPaths.R'
     'copy.R'
     'download.R'
@@ -98,6 +114,9 @@ Collate:
     'postProcess.R'
     'preProcess.R'
     'prepInputs.R'
+    'reexports.R'
+    'reproducible-deprecated.R'
     'reproducible-package.R'
     'search.R'
+    'spatialObjects-class.R'
     'zzz.R'

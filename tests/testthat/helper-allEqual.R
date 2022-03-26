@@ -14,7 +14,6 @@ skip_if_no_token <- function() {
 # sets options("reproducible.ask" = FALSE) if ask = FALSE
 testInit <- function(libraries, ask = FALSE, verbose = FALSE, tmpFileExt = "",
                      opts = NULL, needGoogle = FALSE) {
-
   optsAsk <- if (!ask)
     options("reproducible.ask" = ask)
   else
@@ -26,17 +25,21 @@ testInit <- function(libraries, ask = FALSE, verbose = FALSE, tmpFileExt = "",
     list()
 
   if (missing(libraries)) libraries <- list()
-  unlist(lapply(libraries, require, character.only = TRUE))
-  require("testthat")
-  tmpdir <- normPath(file.path(tempdir(), rndstr(1, 6)))
+  unlist(lapply(libraries, require, character.only = TRUE, quietly = TRUE))
+  require("testthat", quietly = TRUE)
+  tmpdir <- tempdir2(rndstr(1, 6))
 
   if (isTRUE(needGoogle)) {
+    if (!requireNamespace("googledrive"))
+      stop(requireNamespaceMsg("googledrive", "to use google drive files"))
+
     if (utils::packageVersion("googledrive") >= "1.0.0")
       googledrive::drive_deauth()
     else
       googledrive::drive_auth_config(active = TRUE)
 
-    if (quickPlot::isRstudioServer()) {
+    if (.isRstudioServer()) {
+      .requireNamespace("httr", stopOnFALSE = TRUE)
       options(httr_oob_default = TRUE)
     }
 
@@ -50,12 +53,12 @@ testInit <- function(libraries, ask = FALSE, verbose = FALSE, tmpFileExt = "",
           linkOrCopy("~/.httr-oauth", to = file.path(tmpdir, ".httr-oauth"))
         } else {
           googledrive::drive_auth()
-          print("copying .httr-oauth to ~/.httr-oauth")
+          messagePrepInputs("copying .httr-oauth to ~/.httr-oauth")
           file.copy(".httr-oauth", "~/.httr-oauth", overwrite = TRUE)
         }
 
         if (!file.exists("~/.httr-oauth"))
-          message("Please put an .httr-oauth file in your ~ directory")
+          messagePrepInputs("Please put an .httr-oauth file in your ~ directory")
       }
     }
   }
@@ -64,17 +67,22 @@ testInit <- function(libraries, ask = FALSE, verbose = FALSE, tmpFileExt = "",
   tmpCache <- normPath(file.path(tmpdir, "testCache"))
   checkPath(tmpCache, create = TRUE)
 
-  opts <- append(list(reproducible.overwrite = TRUE,
-                      reproducible.useNewDigestAlgorithm = TRUE,
-                      reproducible.cachePath = tmpCache), opts)
+  defaultOpts <- list(
+    reproducible.cachePath = .reproducibleTempCacheDir(), ## TODO: deal with cachePath issues in non-interactive tests
+    reproducible.showSimilar = FALSE,
+    reproducible.overwrite = TRUE,
+    reproducible.useNewDigestAlgorithm = 2,
+    reproducible.cacheSpeed = "slow"
+  )
+  if (length(opts) > 0)
+    defaultOpts[names(opts)] <- opts
+  opts <- defaultOpts
 
   if (!is.null(opts)) {
     if (needGoogle) {
       optsGoogle <- if (utils::packageVersion("googledrive") >= "1.0.0") {
-        # list(httr_oob_default = quickPlot::isRstudioServer(),
-        #      httr_oauth_cache = "~/.httr-oauth")
       } else {
-        list(httr_oob_default = quickPlot::isRstudioServer())
+        list(httr_oob_default = .isRstudioServer())
       }
       opts <- append(opts, optsGoogle)
     }
@@ -110,9 +118,27 @@ testOnExit <- function(testInitOut) {
   setwd(testInitOut$origDir)
   unlink(testInitOut$tmpdir, recursive = TRUE)
   if (isTRUE(testInitOut$needGoogle)) {
+    if (!requireNamespace("googledrive")) stop(requireNamespaceMsg("googledrive", "to use google drive files"))
     if (utils::packageVersion("googledrive") < "1.0.0")
       googledrive::drive_auth_config(active = FALSE)
   }
+  unlink(testInitOut$tmpCache, recursive = TRUE, force = TRUE)
+  unlink(testInitOut$tmpdir, recursive = TRUE, force = TRUE)
+
+  if (grepl("Pq", class(getOption("reproducible.conn", NULL)))) {
+    tabs <- DBI::dbListTables(conn = getOption("reproducible.conn", NULL))
+    tab1 <- grep(value = TRUE, tabs, pattern =
+                   paste(collapse = "_", c(basename2(dirname(testInitOut$tmpCache)),
+                                           basename2(testInitOut$tmpCache))))
+    tab2 <- grep(value = TRUE, tabs, pattern =
+                   paste(collapse = "_", c(basename2(dirname(testInitOut$tmpdir)),
+                                           basename2(testInitOut$tmpdir))))
+    if (length(tab1))
+      try(DBI::dbRemoveTable(conn = getOption("reproducible.conn", NULL), tab1))
+    if (length(tab2))
+      try(DBI::dbRemoveTable(conn = getOption("reproducible.conn", NULL), tab2))
+  }
+
   lapply(testInitOut$libs, function(lib) {
     try(detach(paste0("package:", lib), character.only = TRUE), silent = TRUE)}
   )
@@ -122,11 +148,11 @@ runTest <- function(prod, class, numFiles, mess, expectedMess, filePattern, tmpd
   files <- dir(tmpdir, pattern = filePattern, full.names = TRUE)
   expect_true(length(files) == numFiles)
   expect_is(test, class)
-  message(mess)
-  hasMessageNum <- print(paste(collapse = "_", which(unlist(
+  messagePrepInputs(mess)
+  hasMessageNum <- paste(collapse = "_", which(unlist(
     lapply(strsplit(expectedMess, "\\|")[[1]], function(m)
       any(grepl(m, mess)))
-  ))))
+  )))
 
   isOK <- hasMessageNum == prod
   if (!isOK) {
@@ -134,8 +160,8 @@ runTest <- function(prod, class, numFiles, mess, expectedMess, filePattern, tmpd
     getting <- as.numeric(strsplit(hasMessageNum, split = "_")[[1]])
 
     expectedMessVec <- strsplit(expectedMess, split = "\\|")[[1]]
-    message("expecting, but didn't get ", paste(collapse = ", ", expectedMessVec[setdiff(expe, getting)]))
-    message("got, but didn't expect ", paste(collapse = ", ", expectedMessVec[setdiff(getting, expe)]))
+    messagePrepInputs("expecting, but didn't get ", paste(collapse = ", ", expectedMessVec[setdiff(expe, getting)]))
+    messagePrepInputs("got, but didn't expect ", paste(collapse = ", ", expectedMessVec[setdiff(getting, expe)]))
   }
   expect_true(isOK) #
 }
@@ -145,11 +171,11 @@ expectedMessageRaw <- c("Running preP", "Preparing:", "File downloaded",
                         "Downloading", "Skipping download", "Skipping extractFrom",
                         "targetFile was not.*ry",
                         "Writing checksums.*you can specify targetFile",
-                        "No targetFile supplied. Extracting", "Appending checksums")
+                        "No targetFile supplied. Extracting", "Appending checksums", "although coordinates are longitude")
 expectedMessage <- paste0(collapse = "|", expectedMessageRaw)
 
 expectedMessagePostProcessRaw <- c("cropping", "Checking for errors", "Found no errors",
-                                   "intersecting", "masking")
+                                   "intersecting", "masking", "although coordinates are longitude")
 expectedMessagePostProcess <- paste0(collapse = "|", expectedMessagePostProcessRaw)
 
 urlTif1 <- "https://raw.githubusercontent.com/PredictiveEcology/quickPlot/master/inst/maps/DEM.tif"
@@ -185,16 +211,16 @@ targetFileLuxRDS <- "gadm36_LUX_0_sp.rds"
       }
       raster:::.download(theurl, filename)
       if (!file.exists(filename)) {
-        message("\nCould not download file -- perhaps it does not exist")
+        messagePrepInputs("\nCould not download file -- perhaps it does not exist")
       }
     }
     else {
-      message("File not available locally. Use 'download = TRUE'")
+      messagePrepInputs("File not available locally. Use 'download = TRUE'")
     }
   }
   if (file.exists(filename)) {
     if (version == 2) {
-      thisenvir <- new.env()
+      thisenvir <- new.env(parent = emptyenv())
       data <- get(load(filename, thisenvir), thisenvir)
     }
     else {
@@ -241,8 +267,9 @@ if (utils::packageVersion("raster") <= "2.6.7") {
   getDataFn <- raster::getData
 }
 
-
 testRasterInCloud <- function(fileext, cloudFolderID, numRasterFiles, tmpdir, type = c("Raster", "Stack", "Brick")) {
+  if (!requireNamespace("googledrive")) stop(requireNamespaceMsg("googledrive", "to use google drive files"))
+
   # Second test .grd which has two files
   ####################################################
   # neither cloud or local exist -- should create local and upload to cloud
@@ -265,7 +292,13 @@ testRasterInCloud <- function(fileext, cloudFolderID, numRasterFiles, tmpdir, ty
     r1Orig <- writeRaster(r1Orig, filename = tempfile(tmpdir = tmpdir, fileext = fileext), overwrite = TRUE)
   }
 
+  # ._clearCache_3 <<- ._cloudUpload_1 <<- ._cloudDownloadRasterBackend_1 <<- 1
   r1End <- Cache(fn, r1Orig, useCloud = TRUE, cloudFolderID = cloudFolderID)
+  cloudFolderID1 <- cloudFolderID
+  on.exit({
+    clearCache(useCloud = TRUE, cloudFolderID = cloudFolderID1)
+  })
+
   r1EndData <- r1End[]
   r1EndFilename <- Filenames(r1End)
   r1EndCacheAttr <- attr(r1End, ".Cache")$newCache
@@ -286,15 +319,21 @@ testRasterInCloud <- function(fileext, cloudFolderID, numRasterFiles, tmpdir, ty
     r2Orig <- brick(r2Orig, r2Orig2)
     r2Orig <- writeRaster(r2Orig, filename = tempfile(tmpdir = tmpdir, fileext = fileext), overwrite = TRUE)
   }
+  # ._clearCache_3 <<- ._cloudUpload_1 <<- ._cloudDownloadRasterBackend_1 <<- 1
   r2End <- Cache(fn, r2Orig, useCloud = TRUE, cloudFolderID = cloudFolderID)
+  cloudFolderID2 <- cloudFolderID
+  on.exit({
+    clearCache(useCloud = TRUE, cloudFolderID = cloudFolderID2)
+  })
+
   expect_true(identical(unname(r1EndData), unname(r2End[])))
-  expect_false(identical(r1EndFilename, Filenames(r2End)))
+  expect_true(identical(r1EndFilename, Filenames(r2End))) # this now has correct: only 1 downloaded copy exists
   expect_false(identical(Filenames(r2Orig), Filenames(r1Orig)))
   expect_true(r1EndCacheAttr == TRUE)
   expect_true(attr(r2End, ".Cache")$newCache == FALSE)
-  filnames2End <- unique(dir(dirname(Filenames(r2End)), pattern = paste(collapse = "|", basename(file_path_sans_ext(Filenames(r2End))))))
-  filnames1End <- unique(dir(dirname(r1EndFilename), pattern = paste(collapse = "|", basename(file_path_sans_ext(r1EndFilename)))))
-  expect_true(NROW(filnames1End) == numRasterFiles * 2) # both sets because of the _1 -- a bit of an artifact due to same folder
+  filnames2End <- unique(dir(dirname(Filenames(r2End)), pattern = paste(collapse = "|", basename(filePathSansExt(Filenames(r2End))))))
+  filnames1End <- unique(dir(dirname(r1EndFilename), pattern = paste(collapse = "|", basename(filePathSansExt(r1EndFilename)))))
+  expect_true(NROW(filnames1End) == numRasterFiles) # both sets because of the _1 -- a bit of an artifact due to same folder
   expect_true(NROW(filnames2End) == numRasterFiles) # both sets because of the _1
 
 
@@ -313,17 +352,24 @@ testRasterInCloud <- function(fileext, cloudFolderID, numRasterFiles, tmpdir, ty
     r1Orig <- writeRaster(r1Orig, filename = tempfile(tmpdir = tmpdir, fileext = fileext), overwrite = TRUE)
   }
   r1End <- Cache(fn, r1Orig, useCloud = FALSE, cloudFolderID = cloudFolderID)
+
   expect_true(attr(r1End, ".Cache")$newCache == TRUE) # new to local cache
 
   r4End <- Cache(fn, r1Orig, useCloud = TRUE, cloudFolderID = cloudFolderID)
+  cloudFolderID3 <- cloudFolderID
+  on.exit({
+    clearCache(useCloud = TRUE, cloudFolderID = cloudFolderID3)
+  })
+
   expect_true(attr(r4End, ".Cache")$newCache == FALSE) # new to local cache
-  driveLs <- drive_ls(as_id(cloudFolderID))
+  driveLs <- drive_ls(cloudFolderID)
   data.table::setDT(driveLs)
   expect_true(all(basename(Filenames(r4End)) %in% driveLs$name))
   # should have 2 files in cloud b/c of grd and gri
-  expect_true(sum(file_path_sans_ext(driveLs$name) %in% file_path_sans_ext(basename(Filenames(r4End)))) == numRasterFiles)
+  expect_true(sum(filePathSansExt(driveLs$name) %in% filePathSansExt(basename(Filenames(r4End)))) == numRasterFiles)
   # should have 1 file that matches in local and in cloud, based on cacheId
-  expect_true(NROW(unique(showCache(userTags = file_path_sans_ext(driveLs[endsWith(name, "rda")]$name)), by = "artifact"))==1)
+  suppressMessages(expect_true(NROW(unique(showCache(userTags = filePathSansExt(driveLs[endsWith(name, "rda")]$name)),
+                                           by = .cacheTableHashColName()))==1))
 
   ####################################################
   # both cloud and local exist -- take local only -- no change to cloud
@@ -340,10 +386,14 @@ testRasterInCloud <- function(fileext, cloudFolderID, numRasterFiles, tmpdir, ty
     r1Orig <- writeRaster(r1Orig, filename = tempfile(tmpdir = tmpdir, fileext = fileext), overwrite = TRUE)
   }
   r1End <- Cache(fn, r1Orig, useCloud = TRUE, cloudFolderID = cloudFolderID)
+  on.exit({
+    clearCache(useCloud = TRUE, cloudFolderID = cloudFolderID)
+  })
+
   expect_true(attr(r1End, ".Cache")$newCache == TRUE) # new to local cache
 
 
-  driveLsBefore <- drive_ls(as_id(cloudFolderID))
+  driveLsBefore <- googledrive::drive_ls(cloudFolderID)
   r5Orig <- raster(extent(0,200, 0, 200), vals = 5, res = 1)
   r5Orig <- writeRaster(r5Orig, filename = tempfile(tmpdir = tmpdir, fileext = fileext), overwrite = TRUE)
   if (mc$type == "Stack") {
@@ -355,9 +405,15 @@ testRasterInCloud <- function(fileext, cloudFolderID, numRasterFiles, tmpdir, ty
     r5Orig <- writeRaster(r5Orig, filename = tempfile(tmpdir = tmpdir, fileext = fileext), overwrite = TRUE)
   }
   r5End <- Cache(fn, r5Orig, useCloud = TRUE, cloudFolderID = cloudFolderID)
+  on.exit({
+    clearCache(useCloud = TRUE, cloudFolderID = cloudFolderID)
+  })
   expect_true(attr(r5End, ".Cache")$newCache == FALSE) # new to local cache
-  driveLsAfter <- drive_ls(as_id(cloudFolderID))
+  driveLsAfter <- googledrive::drive_ls(cloudFolderID)
   expect_true(identical(driveLsAfter, driveLsBefore))
+  clearCache(useCloud = TRUE, cloudFolderID = cloudFolderID)
+  driveLsEnd <- googledrive::drive_ls(cloudFolderID)
+  expect_true(NROW(driveLsEnd) == 0)
 }
 
 fnCacheHelper1 <- function() {
@@ -368,3 +424,22 @@ fnCacheHelper <- function(a, cacheRepo2) {
   Cache(fnCacheHelper1, cacheRepo = cacheRepo2, verbose = 2)
 }
 
+crsToUse <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84"
+
+messageNoCacheRepo <- "No cacheRepo supplied and getOption\\('reproducible.cachePath'\\) is inside"
+
+
+.writeRaster <- function(...) {
+  suppressWarningsSpecific(falseWarnings = "NOT UPDATED FOR PROJ",
+                           writeRaster(...))
+}
+
+theRasterTests <- "https://github.com/tati-micheletti/host/raw/master/data/"
+theRasterTestFilename <- function(pre = "", suff = "") {
+  paste0(pre, "rasterTest.", suff)
+}
+theRasterTestZip <- theRasterTestFilename(theRasterTests, "zip") # "https://github.com/tati-micheletti/host/raw/master/data/rasterTest.zip"
+theRasterTestRar <- theRasterTestFilename(theRasterTests, "rar") # "https://github.com/tati-micheletti/host/raw/master/data/rasterTest.rar"
+theRasterTestTar <- theRasterTestFilename(theRasterTests, "tar")
+
+shapefileClassDefault <- if (getOption("reproducible.shapefileRead") == "raster::shapefile") "SpatialPolygons" else "sf"

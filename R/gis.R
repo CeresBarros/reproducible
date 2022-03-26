@@ -5,16 +5,18 @@
 #' @author Alex Chubaty and Eliot McIntire
 #' @export
 #' @importFrom magrittr %>%
-#' @importFrom rgdal getGDALVersionInfo
-#'
 getGDALVersion <-  function() {
-  vers <- tryCatch(getGDALVersionInfo(), error = function(e) NA_real_)
-  if (!is.na(vers)) {
-    vers <- strsplit(vers, split = ",")[[1]][1] %>%
-      strsplit(., split = " ") %>%
-      `[[`(1) %>%
-      `[`(2) %>%
-      as.numeric_version(.)
+  if (.requireNamespace("rgdal")) {
+    vers <- tryCatch(rgdal::getGDALVersionInfo(), error = function(e) NA_real_)
+    if (!is.na(vers)) {
+      vers <- strsplit(vers, split = ",")[[1]][1] %>%
+        strsplit(., split = " ") %>%
+        `[[`(1) %>%
+        `[`(2) %>%
+        as.numeric_version(.)
+    }
+  } else {
+    vers <- '0.0.0'
   }
   return(vers)
 }
@@ -59,21 +61,22 @@ checkGDALVersion <- function(version) {
 #'           triggered. \code{'AUTO'} will calculate 90% of the total
 #'           number of cores in the system, while an integer or rounded
 #'           float will be passed as the exact number of cores to be used.
+#' @param ... Currently unused.
 #'
 #' @return A \code{Raster*} object, masked (i.e., smaller extent and/or
 #'         several pixels converted to NA)
 #'
 #' @author Eliot McIntire
 #' @export
+#' @inheritParams Cache
 #' @inheritParams projectInputs.Raster
-#' @importFrom fasterize fasterize
-#' @importFrom parallel detectCores
 #' @importFrom raster crop crs extract mask nlayers raster stack tmpDir
-#' @importFrom raster xmin xmax ymin ymax fromDisk
-#' @importFrom sf st_as_sf st_write
+#' @importFrom raster xmin xmax ymin ymax fromDisk setMinMax
 #' @importFrom sp SpatialPolygonsDataFrame spTransform
+#' @importFrom gdalUtilities gdalwarp
 #'
 #' @examples
+#' library(sp)
 #' library(raster)
 #'
 #' Sr1 <- Polygon(cbind(c(2, 4, 4, 0.9, 2), c(2, 3, 5, 4, 2)))
@@ -92,7 +95,7 @@ checkGDALVersion <- function(version) {
 #' poly[[2]] <- raster(raster::extent(shp), vals = 1, res = c(1, 1))
 #' origStack <- stack(poly)
 #' # original mask function in raster
-#' newStack1 <- mask(origStack, mask = shp)
+#' newStack1 <- mask(x= origStack, mask = shp)
 #' newStack2 <- fastMask(x = origStack, y = shp)
 #'
 #' # test all equal
@@ -106,120 +109,94 @@ checkGDALVersion <- function(version) {
 #'   plot(shp, add = TRUE)
 #' }
 #'
-fastMask <- function(x, y, cores = NULL, useGDAL = getOption("reproducible.useGDAL", TRUE)) {
-  if (is(x, "RasterLayer") && requireNamespace("sf") && requireNamespace("fasterize")) {
-    message("fastMask is using sf and fasterize")
-
-    if (!identical(crs(y), crs(x))) {
-      if (!is(y, "sf")) {
-        y <- spTransform(x = y, CRSobj = crs(x))
-      } else {
-        y <- st_transform(x = y, crs = crs(x))
-      }
+fastMask <- function(x, y, cores = NULL, useGDAL = getOption("reproducible.useGDAL", TRUE),
+                     verbose = getOption("reproducible.verbose", 1), ...) {
+  if (!identical(.crs(y), .crs(x))) {
+    if (!is(y, "sf")) {
+      y <- spTransform(x = y, CRSobj = .crs(x))
+    } else {
+      .requireNamespace("sf", stopOnFALSE = TRUE)
+      y <- sf::st_transform(x = y, crs = .crs(x))
     }
+  }
 
-    if (is(y, "SpatialPolygons")) {
-      if (!is(y, "SpatialPolygonsDataFrame")) {
-        y <- SpatialPolygonsDataFrame(Sr = y, data = data.frame(ID = seq(length(y))),
-                                      match.ID = FALSE)
-      }
+  if (is(y, "SpatialPolygons")) {
+    if (!is(y, "SpatialPolygonsDataFrame")) {
+      y <- SpatialPolygonsDataFrame(Sr = y, data = data.frame(ID = seq(length(y))),
+                                    match.ID = FALSE)
     }
+  }
 
-    attemptGDAL <- !raster::canProcessInMemory(x, n = 3) && isTRUE(useGDAL)
+  # need to double check that gdal executable exists before going down this path
+  attemptGDAL <- attemptGDAL(x, useGDAL, verbose = verbose)
 
-    if (attemptGDAL) { # need to double check that gdal executable exists before going down this path
-      gdalPath <- NULL
-      if (isWindows()) {
-        possibleWindowsPaths <- c("C:/PROGRA~1/QGIS3~1.0/bin/", "C:/OSGeo4W64/bin",
-                                  "C:/GuidosToolbox/QGIS/bin",
-                                  "C:/GuidosToolbox/guidos_progs/FWTools_win/bin",
-                                  "C:/Program Files (x86)/QGIS 3.6/bin",
-                                  "C:/Program Files (x86)/Quantum GIS Wroclaw/bin",
-                                  "C:/Program Files/GDAL",
-                                  "C:/Program Files (x86)/GDAL",
-                                  "C:/Program Files (x86)/QGIS 2.18/bin")
-        message("Searching for gdal installation")
-        gdalInfoExists <- file.exists(file.path(possibleWindowsPaths, "gdalinfo.exe"))
-        if (any(gdalInfoExists))
-          gdalPath <- possibleWindowsPaths[gdalInfoExists]
-      }
-      gdalUtils::gdal_setInstallation(gdalPath)
+  # browser(expr = exists("._fastMask_2"))
 
-      if (is.null(getOption("gdalUtils_gdalPath"))) # if it doesn't find gdal installed
-        attemptGDAL <- FALSE
-    }
+  if (is(x, "RasterLayer") && requireNamespace("sf", quietly = TRUE) &&
+      requireNamespace("fasterize", quietly = TRUE)) {
+    messagePrepInputs("fastMask is using sf and fasterize")
+
 
     if (attemptGDAL) {
-     # call gdal
-      message("fastMask is using gdalwarp")
+      # call gdal
+      messagePrepInputs("fastMask is using gdalwarp")
 
       # rasters need to go to same directory that can be unlinked at end without losing other temp files
-      tmpRasPath <- checkPath(file.path(raster::tmpDir(), "bigRasters"), create = TRUE)
-      tempSrcRaster <- file.path(tmpRasPath, "bigRasInput.tif")
+      tmpRasPath <- checkPath(bigRastersTmpFolder(), create = TRUE)
+      tempSrcRaster <- bigRastersTmpFile()
       tempDstRaster <- file.path(tmpRasPath, paste0(x@data@names,"_mask", ".tif"))
 
+      # GDAL will to a reprojection without an explicit crop
+      cropExtent <- extent(x)
+      te <- paste(c(cropExtent[1], cropExtent[3],
+                    cropExtent[2], cropExtent[4]))
+      # cropExtentRounded <- roundToRes(cropExtent, x)
       # the raster could be in memory if it wasn't reprojected
       if (inMemory(x)) {
-        dType <- assessDataType(raster(x), type = "writeRaster")
+        dType <- assessDataType(x, type = "writeRaster")
+        dTypeGDAL <- assessDataType(x, type = "GDAL")
         x <- writeRaster(x, filename = tempSrcRaster, datatype = dType, overwrite = TRUE)
         gc()
       } else {
         tempSrcRaster <- x@file@name #Keep original raster.
+        dTypeGDAL <- assessDataType(raster(tempSrcRaster), type = "GDAL")
       }
 
       ## GDAL requires file path to cutline - write to disk
-      tempSrcShape <- file.path(tempfile(tmpdir = raster::tmpDir()), ".shp", fsep = "")
+      tempSrcShape <- normPath(file.path(tempfile(tmpdir = raster::tmpDir()), ".shp", fsep = ""))
       ysf <- sf::st_as_sf(y)
       sf::st_write(ysf, tempSrcShape)
       tr <- res(x)
 
-      if (isWindows()) {
-        message("Using gdal at ", getOption("gdalUtils_gdalPath")[[1]]$path)
-        exe <- ".exe"
-      } else {
-        exe <- ""
-      }
-      dType <- assessDataType(raster(tempSrcRaster), type = "GDAL")
-      if (is.null(cores) || cores == "AUTO") {
-        cores <- as.integer(parallel::detectCores() * 0.9)
-        prll <- paste0("-wo NUM_THREADS=", cores, " ")
-      } else {
-        if (!is.integer(cores)) {
-          if (is.character(cores) | is.logical(cores)) {
-            stop("'cores' needs to be passed as numeric or 'AUTO'")
-          } else {
-            prll <- paste0("-wo NUM_THREADS=", as.integer(cores), " ")
-          }
-        } else {
-          prll <- paste0("-wo NUM_THREADS=", cores, " ")
-        }
-      }
-      system(
-        paste0(paste0(getOption("gdalUtils_gdalPath")[[1]]$path, "gdalwarp", exe, " "),
-               " -multi ", prll,
-               "-ot ",
-               dType, " ",
-               "-crop_to_cutline ",
-               "-cutline ",  "\"", tempSrcShape,"\"", " ",
-               " -overwrite ",
-               "-tr ", paste(tr, collapse = " "), " ",
-               "\"", tempSrcRaster, "\"", " ",
-               "\"", tempDstRaster, "\""),
-        wait = TRUE, intern = TRUE, ignore.stderr = TRUE)
+      cores <- dealWithCores(cores)
+      prll <- paste0("-wo NUM_THREADS=", cores, " ")
+      srcCRS <- as.character(.crs(raster::raster(tempSrcRaster)))
+      targCRS <- srcCRS
+
+      gdalUtilities::gdalwarp(srcfile = tempSrcRaster, dstfile = tempDstRaster,
+                              s_srs = srcCRS, t_srs = targCRS,
+                              cutline = tempSrcShape, crop_to_cutline = FALSE,
+                              srcnodata = NA, dstnodata = NA, tr = tr,
+                              te = te, ot = dTypeGDAL, multi = TRUE, wo = prll, overwrite = TRUE)
+
       x <- raster(tempDstRaster)
+      x <- setMinMaxIfNeeded(x)
     } else {
-      extentY <- extent(y)
-      resX <- res(x) * 2 # allow a fuzzy interpretation -- the cropInputs here won't make it perfect anyway
-      if ( (xmin(x) + resX[1]) < xmin(extentY) && (xmax(x) - resX[1]) > xmax(extentY) &&
-           (ymin(x) + resX[2]) < ymin(extentY) && (ymax(x) - resX[2]) > ymax(extentY) )
-        x <- cropInputs(x, y)
+      # Eliot removed this because fasterize::fasterize will handle cases where x[[1]] is too big
+      #extentY <- extent(y)
+      #resX <- res(x) * 2 # allow a fuzzy interpretation -- the cropInputs here won't make it perfect anyway
+      # if ( (xmin(x) + resX[1]) < xmin(extentY) && (xmax(x) - resX[1]) > xmax(extentY) &&
+      #      (ymin(x) + resX[2]) < ymin(extentY) && (ymax(x) - resX[2]) > ymax(extentY) )
+      #   x <- cropInputs(x, y)
       if (!is(y, "sf")) {
-        y <- fasterize::fasterize(sf::st_as_sf(y), raster = x[[1]], field = NULL)
+        y <- sf::st_as_sf(y)
       }
-      if (canProcessInMemory(x, 3) && fromDisk(x))
-        x[] <- x[]
-      m <- is.na(y[])
-      x[m] <- NA
+      yRas <- fasterize::fasterize(y, raster = x[[1]], field = NULL)
+      x <- maskWithRasterNAs(x = x, y = yRas)
+      # if (canProcessInMemory(x, 3) && fromDisk(x))
+      #   x[] <- x[]
+      # m <- which(is.na(y[]))
+      # x[m] <- NA
 
       if (nlayers(x) > 1) {
         raster::stack(x)
@@ -228,12 +205,12 @@ fastMask <- function(x, y, cores = NULL, useGDAL = getOption("reproducible.useGD
       }
     }
   } else {
-    message("This function is using raster::mask")
+    messagePrepInputs("This function is using raster::mask")
     if (is(x, "RasterStack") || is(x, "RasterBrick")) {
-      message(" because fastMask doesn't have a specific method ",
+      messagePrepInputs(" because fastMask doesn't have a specific method ",
               "for these RasterStack or RasterBrick yet")
     } else {
-      message("This may be slow in large cases. ",
+      messagePrepInputs("This may be slow in large cases. ",
               "To use sf and GDAL instead, see ",
               "https://github.com/r-spatial/sf to install GDAL ",
               "on your system. Then, 'install.packages(\"sf\")",
@@ -246,3 +223,98 @@ fastMask <- function(x, y, cores = NULL, useGDAL = getOption("reproducible.useGD
     }
   }
 }
+
+#' @importFrom raster tmpDir
+bigRastersTmpFolder <- function() checkPath(Require::tempdir2(sub = "bigRasters"), create = TRUE)
+
+bigRastersTmpFile <- function() file.path(bigRastersTmpFolder(), "bigRasInput.tif")
+
+dealWithCores <- function(cores) {
+  # browser(expr = exists("._dealWithCores_1"))
+  if (is.null(cores) || cores == "AUTO") {
+    if (requireNamespace("parallel", quietly = TRUE)) {
+      cores <- as.integer(parallel::detectCores() * 0.9)
+    } else {
+      cores <- 1L
+    }
+  } else {
+    if (!is.integer(cores)) {
+      if (is.character(cores) | is.logical(cores)) {
+        stop("'cores' needs to be passed as numeric or 'AUTO'")
+      } else {
+        cores <- as.integer(cores)
+      }
+    }
+  }
+
+}
+
+attemptGDAL <- function(x, useGDAL = getOption("reproducible.useGDAL", TRUE),
+                        verbose = getOption("reproducible.verbose", 1)) {
+  attemptGDAL <- FALSE
+  if (is(x, "Raster")) {
+    # browser(expr = exists("._attemptGDAL_1"))
+    crsIsNA <- is.na(.crs(x))
+    cpim <- canProcessInMemory(x, 3)
+    isTRUEuseGDAL <- isTRUE(useGDAL)
+    forceGDAL <- identical(useGDAL, "force")
+    shouldUseGDAL <- (!cpim && isTRUEuseGDAL || forceGDAL)
+    attemptGDAL <- if (shouldUseGDAL && !crsIsNA) {
+      TRUE
+    } else {
+      if (crsIsNA && shouldUseGDAL)
+        messagePrepInputs("      Can't use GDAL because crs is NA", verbose = verbose)
+      if (cpim && isTRUEuseGDAL)
+        messagePrepInputs("      useGDAL is TRUE, but problem is small enough for RAM; skipping GDAL; ",
+                          "useGDAL = 'force' to override", verbose = verbose)
+
+      FALSE
+    }
+  }
+  attemptGDAL
+}
+
+maskWithRasterNAs <- function(x, y) {
+  origColors <- checkColors(x)
+  if (canProcessInMemory(x, 3) && fromDisk(x))
+    x[] <- x[]
+  x <- rebuildColors(x, origColors)
+  m <- which(is.na(y[]))
+  x[m] <- NA
+  x
+}
+
+#' @importFrom raster maxValue minValue
+checkColors <- function(x) {
+  origColors <- .getColors(x)
+  origMaxValue <- maxValue(x)
+  origMinValue <- minValue(x)
+  list(origColors = origColors[[1]], origMinValue = origMinValue, origMaxValue = origMaxValue)
+}
+
+rebuildColors <- function(x, origColors) {
+  if (isTRUE(all(origColors$origMinValue != minValue(x)) || all(origColors$origMaxValue != maxValue(x)) ||
+             !identical(.getColors(x)[[1]], origColors$origColors))) {
+    colorSequences <- unlist(lapply(seq(length(origColors$origMinValue)), function(ind) {
+      origColors$origMinValue[ind]:origColors$origMaxValue[ind]
+    }))
+    if (isTRUE(length(origColors$origColors) == length(colorSequences))) {
+      newSeq <- minValue(x):maxValue(x)
+      oldSeq <- origColors$origMinValue:origColors$origMaxValue
+      whFromOld <- match(newSeq, oldSeq)
+      x@legend@colortable <- origColors$origColors[whFromOld]
+    }
+  }
+  x
+}
+
+
+.getColors <- function(object) {
+  nams <- names(object)
+  cols <- lapply(nams, function(x) {
+    as.character(object[[x]]@legend@colortable)
+  })
+  names(cols) <- nams
+  return(cols)
+}
+

@@ -4,7 +4,14 @@
 \alias{fastMask}
 \title{Faster operations on rasters}
 \usage{
-fastMask(x, y, cores = NULL, useGDAL = getOption("reproducible.useGDAL", TRUE))
+fastMask(
+  x,
+  y,
+  cores = NULL,
+  useGDAL = getOption("reproducible.useGDAL", TRUE),
+  verbose = getOption("reproducible.verbose", 1),
+  ...
+)
 }
 \arguments{
 \item{x}{A \code{Raster*} object.}
@@ -17,13 +24,23 @@ triggered. \code{'AUTO'} will calculate 90% of the total
 number of cores in the system, while an integer or rounded
 float will be passed as the exact number of cores to be used.}
 
-\item{useGDAL}{Logical, defaults to \code{getOption("reproducible.useGDAL" = TRUE)}.
+\item{useGDAL}{Logical or \code{"force"}.
+Defaults to \code{getOption("reproducible.useGDAL" = TRUE)}.
 If \code{TRUE}, then this function will use \code{gdalwarp} only when not
 small enough to fit in memory (i.e., \emph{if the operation fails} the
 \code{raster::canProcessInMemory(x, 3)} test). Using \code{gdalwarp} will
 usually be faster than \code{raster::projectRaster}, the function used
 if this is \code{FALSE}. Since since the two options use different algorithms,
-there may be different projection results.}
+there may be different projection results. \code{"force"} will cause it to
+use GDAL regardless of the memory test described here.}
+
+\item{verbose}{Numeric, -1 silent (where possible), 0 being very quiet,
+1 showing more messaging, 2 being more messaging, etc.
+Default is 1. Above 3 will output much more information about the internals of
+Caching, which may help diagnose Caching challenges. Can set globally with an
+option, e.g., \code{options('reproducible.verbose' = 0) to reduce to minimal}}
+
+\item{...}{Currently unused.}
 }
 \value{
 A \code{Raster*} object, masked (i.e., smaller extent and/or
@@ -33,6 +50,7 @@ A \code{Raster*} object, masked (i.e., smaller extent and/or
 This alternative to \code{raster::mask} is included here.
 }
 \examples{
+library(sp)
 library(raster)
 
 Sr1 <- Polygon(cbind(c(2, 4, 4, 0.9, 2), c(2, 3, 5, 4, 2)))
@@ -51,7 +69,7 @@ poly[[1]] <- raster(raster::extent(shp), vals = 0, res = c(1, 1))
 poly[[2]] <- raster(raster::extent(shp), vals = 1, res = c(1, 1))
 origStack <- stack(poly)
 # original mask function in raster
-newStack1 <- mask(origStack, mask = shp)
+newStack1 <- mask(x= origStack, mask = shp)
 newStack2 <- fastMask(x = origStack, y = shp)
 
 # test all equal

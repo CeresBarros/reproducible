@@ -1,9 +1,8 @@
 if (getRversion() >= "3.1.0") {
-  utils::globalVariables(c("checksum.x", "checksum.y", "filesize.x", "filesize.y", "result",
-                           "i.checksum", "checksum", "i.filesize", "filesize", "actualFile",
-                           "algorithm", "i.algorithm"))
+  utils::globalVariables(c("actualFile", "algorithm", "checksum", "checksum.x", "checksum.y",
+                           "filesize", "filesize.x", "filesize.y",
+                           "i.algorithm", "i.checksum", "i.filesize", "result"))
 }
-
 
 ################################################################################
 #' Calculate checksum
@@ -46,6 +45,7 @@ if (getRversion() >= "3.1.0") {
 #'                For \code{digest}, the notable argument is \code{algo}. For \code{write.table},
 #'                the notable argument is \code{append}.
 #'
+#' @inheritParams Cache
 #' @return A \code{data.table} with columns: \code{result}, \code{expectedFile},
 #'         \code{actualFile}, \code{checksum.x}, \code{checksum.y},
 #'         \code{algorithm.x}, \code{algorithm.y}, \code{filesize.x}, \code{filesize.y}
@@ -54,7 +54,6 @@ if (getRversion() >= "3.1.0") {
 #'
 #' @author Alex Chubaty
 #' @export
-#' @importFrom dplyr arrange desc filter group_by left_join mutate rename row_number select
 #' @rdname Checksums
 #'
 #' @examples
@@ -76,20 +75,20 @@ if (getRversion() >= "3.1.0") {
 #'
 setGeneric("Checksums", function(path, write, quickCheck = FALSE,
                                  checksumFile = file.path(path, "CHECKSUMS.txt"),
-                                 files = NULL, ...) {
+                                 files = NULL, verbose = getOption("reproducible.verbose", 1),
+                                 ...) {
   standardGeneric("Checksums")
 })
 
-#' @importFrom crayon magenta
+#' @importFrom data.table setnames
 #' @importFrom methods formalArgs
 #' @importFrom utils read.table write.table
-#' @importFrom R.utils isAbsolutePath
 #' @rdname Checksums
 setMethod(
   "Checksums",
   signature = c(path = "character", quickCheck = "ANY",
                 write = "logical", files = "ANY"),
-  definition = function(path, write, quickCheck, checksumFile, files, ...) {
+  definition = function(path, write, quickCheck, checksumFile, files, verbose = getOption("reproducible.verbose", 1), ...) {
     defaultHashAlgo <- "xxhash64"
     defaultWriteHashAlgo <- "xxhash64"
     dots <- list(...)
@@ -110,7 +109,7 @@ setMethod(
       files <- list.files(path, full.names = TRUE) %>%
         grep(basename(checksumFile), ., value = TRUE, invert = TRUE)
     } else {
-      isAbs <- R.utils::isAbsolutePath(files)
+      isAbs <- isAbsolutePath(files)
       if (!all(isAbs))
         files <- file.path(path, basename(files))
     }
@@ -145,7 +144,7 @@ setMethod(
       }
     }
 
-    message(crayon::magenta("Checking local files...", sep = ""))
+    messagePrepInputs("Checking local files...", sep = "", verbose = verbose)
     filesToCheck <-  if (length(txt$file) & length(files)) {
       files[basename(files) %in% txt$file]
     } else {
@@ -157,7 +156,8 @@ setMethod(
     if (!is.null(txt$algorithm)) {
       if (!write) {
         dots$algo <- unique(txt[txt$file %in% basename(filesToCheck),][["algorithm"]])
-        dots$algo <- na.omit(dots$algo)[1]
+        dots$algo <- dots$algo[!is.na(dots$algo)][1]
+        # dots$algo <- na.omit(dots$algo)[1]
         if (is.na(dots$algo)) dots$algo <- defaultWriteHashAlgo
       }
     } else {
@@ -175,8 +175,8 @@ setMethod(
 
     if (is.null(txt$filesize)) {
       quickCheck <- FALSE
-      message(crayon::magenta("  Not possible to use quickCheck;\n ",
-                              "    CHECKSUMS.txt file does not have filesizes", sep = ""))
+      messagePrepInputs("  Not possible to use quickCheck;\n ",
+                              "    CHECKSUMS.txt file does not have filesizes", sep = "", verbose = verbose)
     }
     checksums <- rep(list(rep("", length(filesToCheck))), 2)
     if (quickCheck | write) {
@@ -190,7 +190,7 @@ setMethod(
                                 args = append(list(file = filesToCheck, quickCheck = FALSE),
                                               dots))
     }
-    message(crayon::magenta("Finished checking local files.", sep = ""))
+    messagePrepInputs("Finished checking local files.", sep = "", verbose = verbose)
 
     out <- if (length(filesToCheck)) {
       data.table(file = basename(filesToCheck), checksum = checksums[[1]],
@@ -204,16 +204,8 @@ setMethod(
     if (write) {
       writeChecksumsTable(out1, checksumFile, dotsWriteTable)
       txt <- txtRead
-      txt1 <- data.table::copy(txt)
       txt <- txt[out, on = colnames(out)]
-      txt1 <- dplyr::right_join(txt1, out)
-      # wh <- match(txt$file, basename(filesToCheck))
-      # wh <- na.omit(wh)
-      # if (length(wh) > 0) {
-      #   txt[wh,"checksum"] <- checksums[[1]]
-      #   txt[wh,"filesize"] <- checksums[[2]]
-      # }
-      # txt <- txt[wh,]
+      #txt1Old <- dplyr::right_join(txt1Old, out)
     }
     txt1 <- data.table::copy(txt)
 
@@ -243,48 +235,48 @@ setMethod(
       "filesize.y" = filesize
     )]
 
-    results.df1 <- out1 %>%
-      dplyr::mutate(actualFile = file) %>%
-      {
-        if (write) {
-          dplyr::right_join(txt, ., by = "file")
-        } else {
-          dplyr::left_join(txt, ., by = "file")
-        }
-      } %>%
-      dplyr::rename(expectedFile = file) %>%
-      dplyr::group_by(expectedFile) %>%
-      {
-        if (quickCheck) {
-          mutate(., result = ifelse(filesize.x != filesize.y, "FAIL", "OK"))
-        } else {
-          mutate(., result = ifelse(checksum.x != checksum.y, "FAIL", "OK"))
-        }
-      } %>%
-      dplyr::arrange(desc(result)) %>%
-      {
-        #if (quickCheck) {
-        select(
-          .,
-          "result",
-          "expectedFile",
-          "actualFile",
-          "checksum.x",
-          "checksum.y",
-          "algorithm.x",
-          "algorithm.y",
-          "filesize.x",
-          "filesize.y"
-        )
-        #} else {
-        #  select(., "result", "expectedFile", "actualFile", "checksum.x", "checksum.y",
-        #         "algorithm.x", "algorithm.y", "filesize.x", "filesize.y")
-        #}
-      } %>%
-      dplyr::filter(row_number() == 1L)
+    # results.df1 <- out1 %>%
+    #   dplyr::mutate(actualFile = file) %>%
+    #   {
+    #     if (write) {
+    #       dplyr::right_join(txt, ., by = "file")
+    #     } else {
+    #       dplyr::left_join(txt, ., by = "file")
+    #     }
+    #   } %>%
+    #   dplyr::rename(expectedFile = file) %>%
+    #   dplyr::group_by(expectedFile) %>%
+    #   {
+    #     if (quickCheck) {
+    #       mutate(., result = ifelse(filesize.x != filesize.y, "FAIL", "OK"))
+    #     } else {
+    #       mutate(., result = ifelse(checksum.x != checksum.y, "FAIL", "OK"))
+    #     }
+    #   } %>%
+    #   dplyr::arrange(desc(result)) %>%
+    #   {
+    #     #if (quickCheck) {
+    #     select(
+    #       .,
+    #       "result",
+    #       "expectedFile",
+    #       "actualFile",
+    #       "checksum.x",
+    #       "checksum.y",
+    #       "algorithm.x",
+    #       "algorithm.y",
+    #       "filesize.x",
+    #       "filesize.y"
+    #     )
+    #     #} else {
+    #     #  select(., "result", "expectedFile", "actualFile", "checksum.x", "checksum.y",
+    #     #         "algorithm.x", "algorithm.y", "filesize.x", "filesize.y")
+    #     #}
+    #   } %>%
+    #   dplyr::filter(row_number() == 1L)
 
-    if (!isTRUE(all.equal(as.data.frame(results.df1), as.data.frame(results.df))))
-      browser()
+    # if (!isTRUE(all.equal(as.data.frame(results.df1), as.data.frame(results.df))))
+    #   stop()
 
     return(invisible(results.df))
     #}
@@ -295,9 +287,9 @@ setMethod(
   "Checksums",
   signature = c(path = "character", quickCheck = "ANY",
                 write = "missing", files = "ANY"),
-  definition = function(path, quickCheck, checksumFile, files, ...) {
+  definition = function(path, quickCheck, checksumFile, files, verbose, ...) {
     Checksums(path, write = FALSE, quickCheck = quickCheck, checksumFile = checksumFile,
-              files = files, ...)
+              files = files, verbose = verbose, ...)
 })
 
 #' @keywords internal

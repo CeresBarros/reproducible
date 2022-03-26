@@ -3,6 +3,7 @@
 \name{fixErrors}
 \alias{fixErrors}
 \alias{fixErrors.default}
+\alias{fixErrors.Raster}
 \alias{fixErrors.SpatialPolygons}
 \alias{fixErrors.sf}
 \title{Do some minor error fixing}
@@ -12,6 +13,8 @@ fixErrors(
   objectName,
   attemptErrorFixes = TRUE,
   useCache = getOption("reproducible.useCache", FALSE),
+  verbose = getOption("reproducible.verbose", 1),
+  testValidity = getOption("reproducible.testValidity", TRUE),
   ...
 )
 
@@ -20,6 +23,18 @@ fixErrors(
   objectName,
   attemptErrorFixes = TRUE,
   useCache = getOption("reproducible.useCache", FALSE),
+  verbose = getOption("reproducible.verbose", 1),
+  testValidity = getOption("reproducible.testValidity", TRUE),
+  ...
+)
+
+\method{fixErrors}{Raster}(
+  x,
+  objectName,
+  attemptErrorFixes = TRUE,
+  useCache = getOption("reproducible.useCache", FALSE),
+  verbose = getOption("reproducible.verbose", 1),
+  testValidity = getOption("reproducible.testValidity", TRUE),
   ...
 )
 
@@ -28,6 +43,8 @@ fixErrors(
   objectName = NULL,
   attemptErrorFixes = TRUE,
   useCache = getOption("reproducible.useCache", FALSE),
+  verbose = getOption("reproducible.verbose", 1),
+  testValidity = getOption("reproducible.testValidity", TRUE),
   ...
 )
 
@@ -36,6 +53,8 @@ fixErrors(
   objectName = NULL,
   attemptErrorFixes = TRUE,
   useCache = getOption("reproducible.useCache", FALSE),
+  verbose = getOption("reproducible.verbose", 1),
+  testValidity = getOption("reproducible.testValidity", TRUE),
   ...
 )
 }
@@ -53,15 +72,24 @@ Default \code{TRUE}, though this may not be the right action for all cases.}
 \item{useCache}{Logical, default \code{getOption("reproducible.useCache", FALSE)}, whether
 Cache is used on the internal \code{raster::buffer} command.}
 
+\item{testValidity}{Logical. If \code{TRUE}, the a test for validity will happen
+before actually running buffering (which is the solution in most
+cases). However, sometimes it takes longer to test for validity
+than just buffer without testing (there are no consequences of
+buffering if everything is valid). If \code{FALSE}, then the
+test will be skipped and the buffering will happen regardless.
+If \code{NA}, then all testing and buffering will be skipped.}
+
 \item{...}{Passed to methods. None currently implemented.}
 }
 \description{
 These must be very common for this function to be useful. Currently, the only
-meaningful method is on SpatialPolygons, and it runs \code{rgeos::gIsValid}. If
-\code{FALSE}, then it runs a buffer of width 0.
+meaningful method is on \code{SpatialPolygons}, and it runs \code{sf::st_is_valid}.
+If \code{FALSE}, then it runs  \code{st_make_valid} or \code{raster::buffer},
+depending on whether x is \code{sf} or \code{SpatialPolygons*}, respectively.
 
 This uses \code{raster::buffer(..., width = 0)} internally, which fixes some
-failures to \code{rgeos::gIsValid}
+failures to \code{sf::st_is_valid}
 }
 \examples{
 # Add a study area to Crop and Mask to
@@ -76,7 +104,7 @@ coords1 <- structure(c(-123.98, -117.1, -80.2, -100, -123.98, 60.9, 67.73, 65.58
 Sr1 <- Polygon(coords1)
 Srs1 <- Polygons(list(Sr1), "s1")
 shpEcozone <- SpatialPolygons(list(Srs1), 1L)
-crs(shpEcozone) <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+crs(shpEcozone) <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
 
 # make a "study area" that is subset of larger dataset
 coords <- structure(c(-118.98, -116.1, -99.2, -106, -118.98, 59.9, 65.73, 63.58, 54.79, 59.9),
@@ -84,12 +112,11 @@ coords <- structure(c(-118.98, -116.1, -99.2, -106, -118.98, 59.9, 65.73, 63.58,
 Sr1 <- Polygon(coords)
 Srs1 <- Polygons(list(Sr1), "s1")
 StudyArea <- SpatialPolygons(list(Srs1), 1L)
-crs(StudyArea) <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
-#'
-#'
+crs(StudyArea) <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+
 ##########
 shpEcozonePostProcessed <- postProcess(shpEcozone, studyArea = StudyArea)
-#'
+
 # Try manually, individual pieces
 shpEcozoneReprojected <- projectInputs(shpEcozone, StudyArea)
 shpEcozoneCropped <- cropInputs(shpEcozone, StudyArea)

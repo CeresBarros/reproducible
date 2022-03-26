@@ -4,7 +4,13 @@
 \alias{CacheDigest}
 \title{The exact digest function that \code{Cache} uses}
 \usage{
-CacheDigest(objsToDigest, algo = "xxhash64", calledFrom = "Cache", ...)
+CacheDigest(
+  objsToDigest,
+  algo = "xxhash64",
+  calledFrom = "Cache",
+  quick = FALSE,
+  ...
+)
 }
 \arguments{
 \item{objsToDigest}{A list of all the objects (e.g., arguments) to be digested}
@@ -12,11 +18,15 @@ CacheDigest(objsToDigest, algo = "xxhash64", calledFrom = "Cache", ...)
 \item{algo}{The algorithms to be used; currently available choices are
     \code{md5}, which is also the default, \code{sha1}, \code{crc32},
     \code{sha256}, \code{sha512}, \code{xxhash32}, \code{xxhash64},
-    \code{murmur32} and \code{spookyhash}.}
+    \code{murmur32}, \code{spookyhash} and \code{blake3}.}
 
 \item{calledFrom}{a Character string, length 1, with the function to
 compare with. Default is "Cache". All other values may not produce
 robust CacheDigest results.}
+
+\item{quick}{Logical or character. If \code{TRUE},
+no disk-based information will be assessed, i.e., only
+memory content. See Details section about \code{quick} in \code{\link{Cache}}.}
 
 \item{...}{passed to \code{.robustDigest}; this is generally empty except
 for advanced use.}

@@ -1,30 +1,31 @@
-## be sure to update the 'Package Options' section of the package help file
-##   in R/reproducible-package.R
-##
 .onLoad <- function(libname, pkgname) {
+  Require::checkPath(.reproducibleTempCacheDir(), create = TRUE)
+  Require::checkPath(.reproducibleTempInputDir(), create = TRUE)
+
+  if (requireNamespace("rgdal", quietly = TRUE))
+    rgdal::set_thin_PROJ6_warnings(TRUE)
+  suppressWarnings(raster::crs("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
   ## set options using the approach used by devtools
   opts <- options()
-  assignInMyNamespace(".reproducibleTempCacheDir", file.path(tempdir(), "reproducible", "cache"))
-  assignInMyNamespace(".reproducibleTempInputDir",  file.path(tempdir(), "reproducible", "inputs"))
-
-  checkPath(.reproducibleTempCacheDir, create = TRUE)
-  checkPath(.reproducibleTempInputDir, create = TRUE)
   opts.reproducible <- reproducibleOptions()
   toset <- !(names(opts.reproducible) %in% names(opts))
   if (any(toset)) options(opts.reproducible[toset])
 
-  backports::import(pkgname, obj = "isFALSE")
   invisible()
 }
 
 #' @importFrom utils packageVersion
 .onAttach <- function(libname, pkgname) {
   if (isInteractive()) {
-    packageStartupMessage("Using reproducible version ",
-                          utils::packageVersion("reproducible"), ".",
-                          "\n  'reproducible' has changed the default digest algorithm.",
-                          "\n  See ?reproducibleOptions for details. To revert to the old:",
-                          "\n  options('reproducible.useNewDigestAlgorithm' = FALSE)")
+    packageStartupMessage(
+      "Using reproducible version ",
+      utils::packageVersion("reproducible"), ".",
+      "\n  'reproducible' has changed the default database backend.",
+      "\n  See ?reproducibleOptions for details.",
+      "\n  During transition to GDAL>3 and PROJ>6, many warnings will be suppressed until",
+      " simple solutions are available; if these GDAL and PROJ changes",
+      " are important to your project you will have to manually update",
+      " proj and crs in spatial objects.")
   }
 }
 
@@ -33,16 +34,11 @@
   o <- options()
   o[startsWith(names(o), prefix = "reproducible.")] <- NULL
   options(o)
-  # if (getOption("reproducible.cachePath") == file.path(.reproducibleTempCacheDir)) {
-  #   options(reproducible.cachePath = NULL)
-  # }
-  # if (getOption("reproducible.inputPaths") == file.path(.reproducibleTempInputDir)) {
-  #   options(reproducible.inputPaths = NULL)
-  # }
 }
 
-.reproducibleTempCacheDir <- file.path(tempdir(), "reproducible", "cache")
-.reproducibleTempInputDir <- file.path(tempdir(), "reproducible", "inputs")
+.reproducibleTempPath <- function() Require::tempdir2()
+.reproducibleTempCacheDir <- function() Require::tempdir2("cache")
+.reproducibleTempInputDir <- function() Require::tempdir2("inputs")
 
 .argsToRemove <- argsToRemove <- unique(c(names(formals(prepInputs)),
                                           names(formals(cropInputs)),
@@ -53,8 +49,6 @@
                                           names(formals(writeOutputs)),
                                           unlist(lapply(methods("postProcess"),
                                                         function(x) names(formals(x))))))
-
-
 
 #' The \code{reproducible} package environment
 #'

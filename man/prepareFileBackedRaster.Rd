@@ -4,7 +4,14 @@
 \alias{.prepareFileBackedRaster}
 \title{Copy the file-backing of a file-backed Raster* object}
 \usage{
-.prepareFileBackedRaster(obj, repoDir = NULL, overwrite = FALSE, ...)
+.prepareFileBackedRaster(
+  obj,
+  repoDir = NULL,
+  overwrite = FALSE,
+  drv = getOption("reproducible.drv", RSQLite::SQLite()),
+  conn = getOption("reproducible.conn", NULL),
+  ...
+)
 }
 \arguments{
 \item{obj}{The raster object to save to the repository.}
@@ -13,11 +20,18 @@
 
 \item{overwrite}{Logical. Should the raster be saved to disk, overwriting existing file.}
 
-\item{...}{passed to \code{archivist::saveToRepo}}
+\item{drv}{an object that inherits from \linkS4class{DBIDriver},
+or an existing \linkS4class{DBIConnection}
+object (in order to clone an existing connection).}
+
+\item{conn}{A \linkS4class{DBIConnection} object, as returned by
+\code{\link[DBI:dbConnect]{dbConnect()}}.}
+
+\item{...}{Not used}
 }
 \value{
 A raster object and its newly located file backing.
-        Note that if this is a legitimate archivist repository, the new location
+        Note that if this is a legitimate Cache repository, the new location
         will be a subdirectory called \file{rasters/} of \file{repoDir/}.
         If this is not a repository, the new location will be within \code{repoDir}.
 }
@@ -30,7 +44,8 @@ to the new file.
 }
 \examples{
 library(raster)
-archivist::createLocalRepo(tempdir())
+# make a cache repository
+a <- Cache(rnorm, 1)
 
 r <- raster(extent(0,10,0,10), vals = 1:100)
 

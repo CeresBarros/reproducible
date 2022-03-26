@@ -2,13 +2,19 @@
 % Please edit documentation in R/cache-helpers.R
 \name{.prepareOutput}
 \alias{.prepareOutput}
-\alias{.prepareOutput,RasterLayer-method}
+\alias{.prepareOutput,Raster-method}
 \alias{.prepareOutput,ANY-method}
 \title{Make any modifications to object recovered from cacheRepo}
 \usage{
 .prepareOutput(object, cacheRepo, ...)
 
-\S4method{.prepareOutput}{RasterLayer}(object, cacheRepo, ...)
+\S4method{.prepareOutput}{Raster}(
+  object,
+  cacheRepo,
+  drv = getOption("reproducible.drv", RSQLite::SQLite()),
+  conn = getOption("reproducible.conn", NULL),
+  ...
+)
 
 \S4method{.prepareOutput}{ANY}(object, cacheRepo, ...)
 }
@@ -18,7 +24,14 @@
 \item{cacheRepo}{A repository used for storing cached objects.
 This is optional if \code{Cache} is used inside a SpaDES module.}
 
-\item{...}{Arguments of \code{FUN} function .}
+\item{...}{Arguments passed to \code{FUN}}
+
+\item{drv}{an object that inherits from \linkS4class{DBIDriver},
+or an existing \linkS4class{DBIConnection}
+object (in order to clone an existing connection).}
+
+\item{conn}{A \linkS4class{DBIConnection} object, as returned by
+\code{\link[DBI:dbConnect]{dbConnect()}}.}
 }
 \value{
 The object, modified
@@ -30,11 +43,8 @@ This is a generic definition that can be extended according to class.
 a <- 1
 .prepareOutput(a) # does nothing
 
-b <- "Null"
+b <- "NULL"
 .prepareOutput(b) # converts to NULL
-
-# For rasters, it is same as .prepareFileBackedRaster
-try(archivist::createLocalRepo(tempdir()))
 
 library(raster)
 r <- raster(extent(0,10,0,10), vals = 1:100)

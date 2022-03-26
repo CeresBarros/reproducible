@@ -4,12 +4,36 @@
 \alias{checkAndMakeCloudFolderID}
 \title{Check for presence of \code{checkFolderID} (for \code{Cache(useCloud)})}
 \usage{
-checkAndMakeCloudFolderID(cloudFolderID = NULL)
+checkAndMakeCloudFolderID(
+  cloudFolderID = getOption("reproducible.cloudFolderID", NULL),
+  cacheRepo = NULL,
+  create = FALSE,
+  overwrite = FALSE,
+  verbose = getOption("reproducible.verbose", 1),
+  team_drive = NULL
+)
 }
 \arguments{
 \item{cloudFolderID}{The google folder ID where cloud caching will occur.}
+
+\item{cacheRepo}{A repository used for storing cached objects.
+This is optional if \code{Cache} is used inside a SpaDES module.}
+
+\item{create}{Logical. If \code{TRUE}, then the \code{cloudFolderID} will be created.
+This should be used with caution as there are no checks for overwriting.
+See \code{googledrive::drive_mkdir}. Default \code{FALSE}.}
+
+\item{overwrite}{Logical. Passed to \code{googledrive::drive_mkdir}.}
+
+\item{verbose}{Numeric, -1 silent (where possible), 0 being very quiet,
+1 showing more messaging, 2 being more messaging, etc.
+Default is 1. Above 3 will output much more information about the internals of
+Caching, which may help diagnose Caching challenges. Can set globally with an
+option, e.g., \code{options('reproducible.verbose' = 0) to reduce to minimal}}
+
+\item{team_drive}{Logical indicating whether to check team drives.}
 }
 \description{
 Will check for presence of a \code{cloudFolderID} and make a new one
-if one not present on googledrive, with a warning.
+if one not present on Google Drive, with a warning.
 }

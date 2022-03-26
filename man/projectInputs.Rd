@@ -8,27 +8,49 @@
 \alias{projectInputs.Spatial}
 \title{Project \code{Raster*} or {Spatial*} or \code{sf} objects}
 \usage{
-projectInputs(x, targetCRS, ...)
+projectInputs(
+  x,
+  targetCRS,
+  verbose = getOption("reproducible.verbose", 1),
+  ...
+)
 
 \method{projectInputs}{default}(x, targetCRS, ...)
 
 \method{projectInputs}{Raster}(
   x,
   targetCRS = NULL,
+  verbose = getOption("reproducible.verbose", 1),
   rasterToMatch = NULL,
   cores = NULL,
   useGDAL = getOption("reproducible.useGDAL", TRUE),
   ...
 )
 
-\method{projectInputs}{sf}(x, targetCRS, ...)
+\method{projectInputs}{sf}(
+  x,
+  targetCRS,
+  verbose = getOption("reproducible.verbose", 1),
+  ...
+)
 
-\method{projectInputs}{Spatial}(x, targetCRS, ...)
+\method{projectInputs}{Spatial}(
+  x,
+  targetCRS,
+  verbose = getOption("reproducible.verbose", 1),
+  ...
+)
 }
 \arguments{
 \item{x}{A \code{Raster*}, \code{Spatial*} or \code{sf} object}
 
 \item{targetCRS}{The CRS of x at the end  of this function (i.e., the goal)}
+
+\item{verbose}{Numeric, -1 silent (where possible), 0 being very quiet,
+1 showing more messaging, 2 being more messaging, etc.
+Default is 1. Above 3 will output much more information about the internals of
+Caching, which may help diagnose Caching challenges. Can set globally with an
+option, e.g., \code{options('reproducible.verbose' = 0) to reduce to minimal}}
 
 \item{...}{Passed to \code{\link[raster]{projectRaster}}.}
 
@@ -42,13 +64,15 @@ triggered. \code{'AUTO'*} will calculate 90% of the total
 number of cores in the system, while an integer or rounded
 float will be passed as the exact number of cores to be used.}
 
-\item{useGDAL}{Logical, defaults to \code{getOption("reproducible.useGDAL" = TRUE)}.
+\item{useGDAL}{Logical or \code{"force"}.
+Defaults to \code{getOption("reproducible.useGDAL" = TRUE)}.
 If \code{TRUE}, then this function will use \code{gdalwarp} only when not
 small enough to fit in memory (i.e., \emph{if the operation fails} the
 \code{raster::canProcessInMemory(x, 3)} test). Using \code{gdalwarp} will
 usually be faster than \code{raster::projectRaster}, the function used
 if this is \code{FALSE}. Since since the two options use different algorithms,
-there may be different projection results.}
+there may be different projection results. \code{"force"} will cause it to
+use GDAL regardless of the memory test described here.}
 }
 \value{
 A file of the same type as starting, but with projection (and possibly
@@ -70,7 +94,7 @@ coords1 <- structure(c(-123.98, -117.1, -80.2, -100, -123.98, 60.9, 67.73, 65.58
 Sr1 <- Polygon(coords1)
 Srs1 <- Polygons(list(Sr1), "s1")
 shpEcozone <- SpatialPolygons(list(Srs1), 1L)
-crs(shpEcozone) <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+crs(shpEcozone) <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
 
 # make a "study area" that is subset of larger dataset
 coords <- structure(c(-118.98, -116.1, -99.2, -106, -118.98, 59.9, 65.73, 63.58, 54.79, 59.9),
@@ -78,12 +102,11 @@ coords <- structure(c(-118.98, -116.1, -99.2, -106, -118.98, 59.9, 65.73, 63.58,
 Sr1 <- Polygon(coords)
 Srs1 <- Polygons(list(Sr1), "s1")
 StudyArea <- SpatialPolygons(list(Srs1), 1L)
-crs(StudyArea) <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
-#'
-#'
+crs(StudyArea) <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+
 ##########
 shpEcozonePostProcessed <- postProcess(shpEcozone, studyArea = StudyArea)
-#'
+
 # Try manually, individual pieces
 shpEcozoneReprojected <- projectInputs(shpEcozone, StudyArea)
 shpEcozoneCropped <- cropInputs(shpEcozone, StudyArea)

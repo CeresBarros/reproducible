@@ -1,4 +1,202 @@
-Known issues: https://github.com/PredictiveEcology/reproducible/issues
+Known issues: <https://github.com/PredictiveEcology/reproducible/issues>
+
+Version 1.2.8
+=============
+
+## Dependency changes
+* `lwgeom` now a suggested package
+
+## Enhancements
+* `terra` class objects can now be correctly saved and recovered by `Cache`
+* `fixErrors` can now distinguish `testValidity = NA` meaning don't fix errors and `testValidity = FALSE` run buffering which fixes many errors, but don't test whether there are any invalid polygons first (maybe slow), or `testValidity = TRUE` meaning test for validity, then if some are invalid, then run buffer.
+* Change default option to `reproducible.useNewDigestAlgorithm = 2` which will have user visible changes. To keep old behaviour, set `options(reproducible.useNewDigestAlgorithm = 1)`
+* minor changes to messaging when `options(reproducible.showSimilar)` is set. It is now more compact e.g., 3 lines instead of 5.
+* added `sf` methods to `studyAreaName`
+
+## Bug fixes
+* A small, but very impactful bug that created false positive `Cache` returns; i.e., a 2nd time through a Cache would return a cached copy, when some of the arguments were different. It occurred for when the differences were in unnamed arguments only.
+
+Version 1.2.7
+=============
+
+`reproducible` will be slowly changing the defaults for vector GIS datasets from the `sp` package to the `sf` package. 
+There is a large user-visible change that will come (in the next release), which will cause `prepInputs` to read `.shp` files with `sf::st_read` instead of `raster::shapefile`, as it is much faster. To change now, set  `options("reproducible.shapefileRead" = "sf::st_read")`
+
+## Enhancements
+* default `fun` in `prepInputs` for shapefiles (`.shp`) is now `sf::st_read` if the system has `sf` installed. This can be overridden with `options("reproducible.shapefileRead" = "raster::shapefile")`, and this is indicated with a message at the moment this is occurring, as it will cause different behaviour.
+* `quick` argument in `Cache` can now be a character vector, allowing individual character arguments to be digested as character vectors and others to be digested as files located at the specified path as represented by the character vector.
+* `objSize` previously included objects in `namespaces`, `baseenv` and `emptyenv`, so it was generally too large. Now uses the same criteria as `pryr::object_size`
+* improvements with messaging when `unzip` missing (thanks to @CeresBarros #202)
+* while unzipping, will also search for `7z.exe` on Windows if the object is larger than 2GB, if can't find `unzip`.
+* `fun` argument in `prepInputs` and family can now be a quoted expression.
+* `archive` argument in `prepInputs` can now be `NA` which means to treat the file downloaded not as an archive, even if it has a `.zip` file extension
+* many minor improvements to functioning of esp. `prepInputs`
+* speed improvements during `postProcess` especially for very large objects (>5GB tested). Previously, it was running many `fixErrors` calls; now only calls `fixErrors` on fail of the proximate call (e.g., st_crop or whatever)
+* `retry` now has a new argument `exprBetween` to allow for doing something after the fail (for example, if an operation fails, e.g., `st_crop`, then run `fixErrors`, then return back to `st_crop` for the retry)
+* `Cache` now has MUCH better nested levels detection, with messaging... and control of how deep the Caching goes seems good, via useCache = 2 will only Cache 2 levels in...
+* `archive` argument in `prepInputs` family can now be NA ... meaning do not try to unzip even if it is a `.zip` file or other standard archive extension
+* `gdb.zip` files (e.g., a file with a .zip extension, but that should not be opened with an unzip-type program) can now be opened with `prepInputs(url = "whateverUrl", archive = NA, fun = "sf::st_read")`
+* `fun` argument in `prepInputs` can now be a quoted function call.
+* `preProcess` now does a better job with large archives that can't be correctly handled with the default `zip` and `unzip` with R, by trying `system2` calls to possible `7z.exe` or other options on Linux-alikes.
+
+## Bug fixes
+* `Copy` generic no longer has `fileBackedDir` argument. It is now passed through with the `...`. This was creating a bug with some cases where `fileBackedDir` was not being correctly executed.
+* `fixErrors()` now better handles `sf` polygons with mixed geometries that include points.
+* inadvertent deleting of file-backed rasters in multi-filed stacks during `Cache`
+* `writeOutputs.Raster` attempted to change `datatype` of `Raster` class objects using the setReplacement `dataType<-`, without subsequently writing to disk via `writeRaster`. This created bad values in the `Raster*` object. This now performs a `writeRaster` if there is a `datatype` passed to `writeOutputs` e.g., through `prepInputs` or `postProcess`.
+* `updateSlotFilename` has many more tests.
+* `prepInputs(..., fun = NA)` now is the correct specification for "do not load object into R". This essentially replicates `preProcess` with same arguments.
+* several minor bugfixes
+* `Copy` did not correctly copy `RasterStack`s when some of the `RasterLayer` objects were in memory, some on disk; `raster::fromDisk` returned `FALSE` in those cases, so `Copy` didn't occur on the file-backed layer files. Using `Filenames` instead to determine if there are any files that need copying.
+
+version 1.2.6
+==============
+
+## Enhancements
+* Optional (and may be default soon) -- An update to the internal digesting for file-backed Rasters that should be substantially faster, and smaller disk footprint. Set using `options("reproducible.useNewDigestAlgorithm" = 2)`
+* changed default of `options("reproducible.polygonShortcut" = FALSE)` as there were still too many edge cases that were not covered.
+
+## Bug fix
+* fixed an error with *rcnst* on CRAN
+* `RasterStack` objects with a single file (thus acting like a `RasterBrick`) are now handled correctly by `Cache` and `prepInputs` families, especially with new `options("reproducible.useNewDigestAlgorithm" = 2)`, though in tests, it worked with default also
+* `RSQLite` now uses a RNG during `dbAppend`; this affected 2 tests (#185).
+
+version 1.2.4
+==============
+
+## Bug fix
+* typo in date
+
+version 1.2.3
+==============
+
+## Bug fix
+* minor url fix
+
+version 1.2.2
+==============
+
+## New features
+* removed several uses of `rgeos`
+* moved `paddedFloatToChar` to reproducible from SpaDES.core.
+* increased code coverage
+* Pull in legacy `%>%` code from `magrittr` to allow the cached alternative, `%C%`. With new `magrittr` pipe now in compiled source code, more of the legacy code is required here.
+
+
+## Bug fixes
+* several minor
+
+version 1.2.1
+==============
+
+## New features
+* harmonized message colours that are use adjustable via options: `reproducible.messageColourPrepInputs` for all `prepInputs` functions;  `reproducible.messageColourCache` for all `Cache` functions; and `reproducible.messageColourQuestion` for questions that require user input. Defaults are `cyan`, `blue` and `green` respectively. These are user-visible colour changes.
+* improved messaging for `Cache` cases where a `file.link` is used instead of saving.
+* with improved messaging, now `options(reproducible.verbose = 0)` will turn off almost all messaging.
+* `postProcess` and family now have `filename2 = NULL` as the default, so not saved to disk. This is a change.
+* `verbose` is now an argument throughout, whose default is `getOption(reproducible.verbose)`, which is set by default to `1`. Thus, individual function calls can be more or less verbose, or the whole session via option. 
+
+## Bug fixes
+* `RasterStack` objects were not correctly saved to disk under some conditions in `postProcess` - fixed
+* several minor
+
+version 1.2.0
+==============
+
+## New features
+* `postProcess` now uses a simpler single call to `gdalwarp`, if available, for `RasterLayer` class to accomplish `cropInputs`, `projectInputs`, `maskInputs`, and `writeOutputs` all at once. This should be faster, simpler and, perhaps, more stable. It will only be invoked if the `RasterLayer` is too large to fit into RAM. To force it to be used the user must set `useGDAL = "force"` in `prepInputs` or `postProcess` or globally with `options("reproducible.useGDAL" = "force")`
+* `postProcess` when using the new `gdalwarp`, has better persistence of colour table, and NA values as these are kept with better reliability
+* concurrent `Cache` now works as expected (e.g., with parallel processing, it will avoid collisions) with SQLite thanks to suggestion here: <https://stackoverflow.com/a/44445010>
+* updated digesting of `Raster` class objects to account for more of the metadata (including the colortable). This will change the digest value of all `Raster` layers, causing re-run of `Cache`
+* removed `Require`, `pkgDep`, `trimVersionNumber`, `normPath`, `checkPath` that were moved to `Require` package. For backwards compatibility, these are imported and reexported
+* address permanently or temporarily new changes in GDAL>3 and PROJ>6 in the spatial packages.
+* new function `file.move` used to rename/copy files across disks (a situation where `file.rename` would fail)
+* all `DBI` type functions now have default `cachePath` of `getOption("reproducible.cachePath")`
+* `Cache(prepInputs, ...` on a file-backed `Raster*` class object now gives the non-Cache repository folder as the `filename(returnRaster)`. Previously, the return object would contain the cache repository as the folder for the file-backed `Raster*` 
+
+## Dependency changes
+* net reduction in number of packages that are imported from by 14. Removed completely: `backports`, `memoise`, `quickPlot`, `R.utils`, `remotes`, `tools`, and `versions`; moved to Suggests: `fastdigest`, `gdalUtils`, `googledrive`, `httr`, `qs`, `rgdal`, `sf`, `testthat`; added: `Require`. Now there are 12 non-base packages listed in Imports. This is down from 31 prior to Ver 1.0.0.
+
+## bug fixes
+* fix over-wide tables in PDF manual (#144)
+* use `file.link` not `file.symlink` for `saveToCache`. This would have resulted in C Stack overflow errors due to missing original file in the `file.symlink`
+* use system call to `unzip` when extracting large (>= 4GB) files (#145, @tati-micheletti)
+* several minor including `projectInputs` when converting to longlat projections, `setMinMax` for `gdalwarp` results
+* `Filenames` now consistently returns a character vector (#149)
+* improvements to file-backed Raster caching to accommodate a few more edge cases
+
+version 1.1.1
+==============
+
+## New features
+* none
+
+## Dependency changes
+* none
+
+## bug fixes
+* fix CRAN test failure when `file.link` does not succeed.
+
+version 1.1.0
+==============
+
+## New features
+* begin to accommodate changes in GDAL/PROJ and associated updates to other spatial packages.
+  More updates are expected as other spatial packages (namely `raster`) are updated.
+* can now change `options('reproducible.cacheSaveFormat')` on the fly; cache will look for the file by `cacheId` and write it using `options('reproducible.cacheSaveFormat')`.
+  If it is in another format, Cache will load it and resave it with the new format. Experimental still.
+* new `Copy` methods for `refClass` objects, `SQLite` and moved `environment` method into `ANY` as it would be dispatched for unknown classes that inherit from `environment`, of which there are many and this should be intercepted
+* `Require` can now handle minimum version numbers, e.g., `Require("bit (>=1.1-15.2)")`; this can be worked into downstream tools. Still experimental.
+* Cache will do `file.link` or `file.symlink` if an existing Cache entry with identical output exists and it is large (currently `1e6` bytes); this will save disk space. 
+* Cache database now has tags for elapsed time of "digest", "original call", and "subsequent recovery from file", `elapsedTimeDigest`, `elapsedTimeFirstRun`, and `elapsedTimeLoad`, respectively.
+* Better management of temporary files in package and tests, e.g., during downloading (`preProcess`). Includes 2 new functions, `tempdir2` and `tempfile2` for use with `reproducible` package
+* New option: `reproducible.tempPath`, which is used for the new control of temporary files. Defaults to `file.path(tempdir(), "reproducible")`. This feature was requested to help manage large amounts of temporary objects that were not being easily and automatically cleaned
+* Copying or moving of Cache directories now works automatically if using default `drv` and `conn`; user may need to manually call `movedCache` if cache is not responding correctly.
+  File-backed Rasters are automatically updated with new paths.
+* Cache now treats file-backed Rasters as though they had a relative path instead of their absolute path.
+  This means that Cache directories can be copied from one location to another and the file-backed `Raster*` will have their filenames updated on the fly during a Cache recovery.
+  User doesn't need to do anything.
+* `postProcess` now will perform simple tests and skip `cropInputs` and `projectInputs` with a message if it can, rather than using `Cache` to "skip". This should speed up `postProcess` in many cases.
+* messaging with `Cache` has change. Now, `cacheId` is shown in all cases, making it easier to identify specific items in the cache.
+* Automatically cleanup temporary (intermediate) raster files (with #110).
+
+## Dependency changes
+* none
+
+## bug fixes
+* `Copy` only creates a temporary directory for filebacked rasters; previously any `Copy` command was creating a temporary directory, regardless of whether it was needed
+* `cropInputs.spatialObjects` had a bug when object was a large non-Raster class.
+* `cropInputs` may have failed due to "self intersection" error when x was a `SpatialPolygons*` object; now catches error, runs `fixErrors` and retries `crop`.
+  Great reprex by @tati-micheletti. Fixed in commit `89e652ef111af7de91a17a613c66312c1b848847 `.
+* `Filenames` bugfix related to `RasterBrick`
+* `prepInputs` does a better job of keeping all temporary files in a temporary folder; and cleans up after itself better.
+* `prepInputs` now will not show message that it is loading object into R if `fun = NULL` (#135).
+
+version 1.0.0
+==============
+
+## New features
+
+* This version is not backwards-compatible out of the box. To maintain backwards compatibility, set: `options("reproducible.useDBI" = FALSE)`
+* A new backend was introduced that uses `DBI` package directly, without `archivist`. This has much improved speed. 
+* New option: `options("reproducible.cacheSaveFormat")`. This can be either `rds` (default) or `qs`. All cached objects will be saved with this format. Previously it was `rda`. 
+* Cache objects can now be saved with with `qs::qsave`. In many cases, this has much improved speed and file sizes compared to `rds`; however, testing across a wide range of conditions will occur before it becomes the default.
+* Changed default behaviour for memoising `...` because `Cache` is now much faster, the default is to turn memoising off, via `options("reproducible.useMemoise" = FALSE)`.
+  In cases of large objects, memoising should still be faster, so user can still activate it, setting the option to `TRUE`.
+* Much better SQLite database handling for concurrent write attempts.
+  Tested with dozens of write attempts per second by 3 cores with abundant locked database occurrences.
+* `postProcess` arg `useGDAL` can now take `"force"` as the default behaviour is to not use GDAL if the problem can fit into RAM and `sf` or `raster` tools will be faster than `GDAL` tools
+* `useCloud` argument in `Cache` and family has slightly modified functionality (see ?Cache new section `useCloud`) and now has more tests including edge cases, such as `useCloud = TRUE, useCache = 'overwrite'`. The cloud version now will also follow the `"overwrite"` command.
+
+## Dependency changes
+
+* deprecating `archivist`; moved to Suggests.
+* removed imports for `bitops`, `dplyr`, `fasterize`, `flock`, `git2r`, `lubridate`, `RcppArmadillo`, `RCurl` and `tidyselect`. Some of these went to Suggests.
+
+## bug fixes
+
+* `postProcess` calls that use GDAL made more robust (including #93).
+* Several minor, edge cases were detected and fixed.
 
 version 0.2.11
 ==============

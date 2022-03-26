@@ -35,7 +35,7 @@ convertPaths <- function(x, patterns, replacements) {
   stopifnot(length(patterns) == length(replacements))
   patterns <- normPath(patterns)
   replacements <- normPath(replacements)
-  x = normPath(x)
+  x <- normPath(x)
   for (i in seq_along(patterns)) {
     x <- gsub(x = x, pattern = patterns[i], replacement = replacements[i])
   }
@@ -70,11 +70,15 @@ convertRasterPaths <- function(x, patterns, replacements) {
 #' length >1 for \code{RasterStack}.
 #'
 #' @param obj A \code{Raster*} object (i.e., \code{RasterLayer}, \code{RasterStack}, \code{RasterBrick})
+#' @param allowMultiple Logical. If \code{TRUE}, the default, then all relevant
+#'   filenames will be returned, i.e., in cases such as \code{.grd} where multiple files
+#'   are required. If \code{FALSE}, then only the first file will be returned,
+#'   e.g., \code{filename.grd}, in the case of default Raster format in R.
 #'
 #' @author Eliot McIntire
 #' @export
 #' @rdname Filenames
-setGeneric("Filenames", function(obj) {
+setGeneric("Filenames", function(obj, allowMultiple = TRUE) {
   standardGeneric("Filenames")
 })
 
@@ -83,7 +87,7 @@ setGeneric("Filenames", function(obj) {
 setMethod(
   "Filenames",
   signature = "ANY",
-  definition = function(obj) {
+  definition = function(obj, allowMultiple) {
     NULL
 })
 
@@ -92,8 +96,16 @@ setMethod(
 setMethod(
   "Filenames",
   signature = "Raster",
-  definition = function(obj) {
-    filename(obj)
+  definition = function(obj, allowMultiple = TRUE) {
+    fn <- filename(obj)
+    if (exists("._Filenames_1")) browser()
+    if (length(fn) == 0)
+      fn <- ""
+    # browser(expr = exists("._Filenames_1"))
+    if (isTRUE(allowMultiple))
+      if (endsWith(fn, suffix = "grd"))
+        fn <- c(fn, gsub("grd$", "gri", fn))
+    normPath(fn)
 })
 
 #' @export
@@ -101,8 +113,18 @@ setMethod(
 setMethod(
   "Filenames",
   signature = "RasterStack",
-  definition = function(obj) {
-    unlist(lapply(seq_along(names(obj)), function(index) filename(obj[[index]])))
+  definition = function(obj, allowMultiple = TRUE) {
+    fn <- unlist(lapply(seq_along(names(obj)), function(index)
+      Filenames(obj[[index]], allowMultiple = allowMultiple)))
+
+    dups <- duplicated(fn)
+    if (any(dups)) {
+      theNames <- names(fn)
+      fn <- fn[!dups]
+      names(fn) <- theNames[!dups]
+    }
+
+    return(fn)
 })
 
 #' @export
@@ -110,23 +132,44 @@ setMethod(
 setMethod(
   "Filenames",
   signature = "environment",
-  definition = function(obj) {
-    rastersLogical <- isOrHasRaster(obj)
-    rasterFilename <- NULL
-    if (any(rastersLogical)) {
-      rasterNames <- names(rastersLogical)[rastersLogical]
-      if (!is.null(rasterNames)) {
-        diskBacked <- sapply(mget(rasterNames, envir = obj), fromDisk)
-        names(rasterNames) <- rasterNames
-        rasterFilename <- if (sum(diskBacked) > 0) {
-          lapply(mget(rasterNames[diskBacked], envir = obj), Filenames)
-        } else {
-          NULL
-        }
-      }
-    }
+  definition = function(obj, allowMultiple = TRUE) {
+    rasterFilename <- Filenames(as.list(obj), allowMultiple = allowMultiple)
+    # rastersLogicalList <- isOrHasRaster(obj)
+    # rastersLogical <- vapply(rastersLogicalList, function(x) any(unlist(x)), logical(1))
+    # rastersLogicalLong <- unlist(rastersLogicalList)
+    # rasterFilename <- NULL
+    # if (any(rastersLogical)) {
+    #   rasterNames <- names(rastersLogical)[rastersLogical]
+    #   if (!is.null(rasterNames)) {
+    #     no <- names(obj)
+    #     names(no) <- no
+    #     ## TODO: sapply is not type-safe; use vapply
+    #     nestedOnes <- lapply(no, function(rn) grep(paste0("^", rn, "\\."), rasterNames, value = TRUE))
+    #     nestedOnes1 <- nestedOnes[sapply(nestedOnes, function(x) length(x) > 0)]
+    #     nonNested <- nestedOnes[sapply(nestedOnes, function(x) length(x) == 0)]
+    #     nonNestedRasterNames <- rasterNames[rasterNames %in% names(nonNested)]
+    #     diskBacked <- sapply(mget(nonNestedRasterNames, envir = obj), fromDisk)
+    #
+    #     names(rasterNames) <- rasterNames
+    #     rasterFilename <- if (sum(diskBacked) > 0) {
+    #       browser()
+    #       lapply(mget(rasterNames[diskBacked], envir = obj), Filenames,
+    #              allowMultiple = allowMultiple)
+    #     } else {
+    #       NULL
+    #     }
+    #     if (length(nestedOnes1) > 0) {
+    #       rasterFilename2 <- sapply(mget(names(nestedOnes1), envir = obj), Filenames,
+    #                                 allowMultiple = allowMultiple)
+    #       rasterFilename <- c(rasterFilename, rasterFilename2)
+    #     }
+    #   }
+    # }
     rasterFilenameDups <- lapply(rasterFilename, duplicated)
-    rasterFilename <- lapply(names(rasterFilenameDups), function(nam) rasterFilename[[nam]][!rasterFilenameDups[[nam]]])
+
+    if (any(unlist(rasterFilenameDups))) {
+      rasterFilename <- rasterFilename[!unlist(rasterFilenameDups)]
+    }
     return(rasterFilename)
 })
 
@@ -135,7 +178,11 @@ setMethod(
 setMethod(
   "Filenames",
   signature = "list",
-  definition = function(obj) {
+  definition = function(obj, allowMultiple = TRUE) {
     ## convert a list to an environment -- this is to align it with a simList and environment
-    Filenames(as.environment(obj))
+    if (is.null(names(obj))) {
+      names(obj) <- as.character(seq(obj))
+    }
+    unlist(lapply(obj, function(o) Filenames(o, allowMultiple = allowMultiple)))
+    # Filenames(as.environment(obj), allowMultiple = allowMultiple)
 })

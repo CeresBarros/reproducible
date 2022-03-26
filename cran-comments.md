@@ -1,45 +1,31 @@
 ## Updated release
 
-This is a maintenance release which adds several new features and fixes some minor bugs.
-See `NEWS.md`.
+This release addresses transient failures on the CRAN version of `reproducible` (currently there are none: https://cran.r-project.org/web/checks/check_results_reproducible.html), plus adds several new features.
 
 ## Test environments
 
-Tested and passed using winbuilder all three versions, and rhub with no errors, warnings, or notes.
-
-### Previous R versions
-* Ubuntu 16.04        (travis-ci), R 3.5.3
-* Windows 7            (appveyor), R 3.5.3
-* Windows 7               (local), R 3.5.3
-* Windows           (win-builder), R 3.5.3
-
-### Current R versions
-* macOS Mojave        (travis-ci), R 3.6.1
-* macOS Mojave            (local), R 3.6.1
-* Ubuntu 16.04        (travis-ci), R 3.6.1
-* Ubuntu 18.04            (local), R 3.6.1
-* Windows              (appveyor), R 3.6.1
-* Windows                 (local), R 3.6.1
-* Windows           (win-builder), R 3.6.1
-
-### Development R version
-* Ubuntu 16.04       (travis-ci), R 4.0.0 (2019-11-11 r77395)
-* Ubuntu 18.04           (local), R 4.0.0 (2019-11-12 r77405)
-* Windows             (appveyor), R 4.0.0 (2019-11-07 r77386)
-* Windows          (win-builder), R 4.0.0 (2019-11-12 r77405)
+### GitHub Actions
+- os: macOS-latest,   r: 'release'
+- os: windows-latest, r: 'release'
+- os: windows-latest, r: '4.0'
+- os: windows-latest, r: '3.6'
+- os: ubuntu-18.04,   r: 'devel', 
+- os: ubuntu-18.04,   r: 'release'
+- os: ubuntu-18.04,   r: 'oldrel'
+- os: ubuntu-18.04,   r: '3.6'
+          
+### Winbuilder -- all passed Sept 25, 2021
+* Windows                 (win-builder), R 3.6.3
+* Windows                 (win-builder), R 4.0.5
+* Windows                 (win-builder), R-devel
 
 ## R CMD check results
 
-There were no ERRORs, nor WARNINGs, nor NOTEs.
+There is only a NOTE about the email address, which is correct, and unchanged, for the maintainer.
 
 ## Downstream dependencies
 
-We have run R CMD check on downstream dependencies, and have no ERRORs and WARNINGs or NOTEs:
+Running `revdepcheck::revdep_check` revealed all downstream dependencies OK. 
 
-
-## revdepcheck results
-
-We checked 4 reverse dependencies (0 from CRAN + 4 from BioConductor), comparing R CMD check results across CRAN and dev versions of this package.
-
- * We saw 0 new problems
+ * We saw 1 new problem with SpaDES.core. We are the developers of this package and will update shortly.
  * We failed to check 0 packages

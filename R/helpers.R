@@ -1,45 +1,49 @@
 #' @keywords internal
 .pkgSnapshot <- function(instPkgs, instVers, packageVersionFile = "._packageVersionsAuto.txt") {
+  # browser(expr = exists("aaaa"))
   inst <- data.frame(instPkgs, instVers = unlist(instVers), stringsAsFactors = FALSE)
   write.table(inst, file = packageVersionFile, row.names = FALSE)
   inst
 }
 
-#' @importFrom utils chooseCRANmirror
-#' @keywords internal
-getCRANrepos <- function(repos = NULL) {
-  if (is.null(repos)) {
-    repos <- getOption("repos")["CRAN"]
-  }
-
-  # still might be imprecise repository, specifically ""
-  if (isTRUE("" == repos)) {
-    repos <- "@CRAN@"
-  }
-
-  # if @CRAN@, and non interactive session
-  if (isTRUE("@CRAN@" %in% repos)) {
-    cranRepo <- Sys.getenv("CRAN_REPO")
-    repos <- if (nzchar(cranRepo)) {
-      cranRepo
-    } else {
-      if (isInteractive()) {
-        chooseCRANmirror2() ## sets repo option
-        getOption("repos")["CRAN"]
-      } else {
-        "https://cloud.r-project.org"
-      }
-    }
-  }
-
-  return(repos)
+################################################################################
+#' Convert numeric to character with padding
+#'
+#' This will pad floating point numbers, right or left. For integers, either class
+#' integer or functionally integer (e.g., 1.0), it will not pad right of the decimal.
+#' For more specific control or to get exact padding right and left of decimal,
+#' try the \code{stringi} package. It will also not do any rounding. See examples.
+#'
+#' @param x numeric. Number to be converted to character with padding
+#'
+#' @param padL numeric. Desired number of digits on left side of decimal.
+#'              If not enough, \code{pad} will be used to pad.
+#'
+#' @param padR numeric. Desired number of digits on right side of decimal.
+#'              If not enough, \code{pad} will be used to pad.
+#'
+#' @param pad character to use as padding (\code{nchar(pad) == 1} must be \code{TRUE}).
+#'
+#' @return Character string representing the filename.
+#'
+#' @author Eliot McIntire and Alex Chubaty
+#' @export
+#' @importFrom fpCompare %==%
+#' @rdname paddedFloatToChar
+#'
+#' @examples
+#' paddedFloatToChar(1.25)
+#' paddedFloatToChar(1.25, padL = 3, padR = 5)
+#' paddedFloatToChar(1.25, padL = 3, padR = 1) # no rounding, so keeps 2 right of decimal
+paddedFloatToChar <- function(x, padL = ceiling(log10(x + 1)), padR = 3, pad = "0") {
+  xf <- x %% 1
+  numDecimals <- nchar(gsub("(.*)(\\.)|([0]*$)","",xf))
+  newPadR <- ifelse(xf %==% 0, 0, pmax(numDecimals, padR))
+  xFCEnd <- sprintf(paste0("%0", padL+newPadR+1*(newPadR > 0),".", newPadR, "f"), x)
+  return(xFCEnd)
 }
 
-#' @importFrom utils chooseCRANmirror
-#' @keywords internal
-chooseCRANmirror2 <- function() {
-  chooseCRANmirror()
-}
+
 #' Add a prefix or suffix to the basename part of a file path
 #'
 #' Prepend (or postpend) a filename with a prefix (or suffix).
@@ -52,7 +56,6 @@ chooseCRANmirror2 <- function() {
 #'
 #' @author Jean Marchal and Alex Chubaty
 #' @export
-#' @importFrom tools file_ext file_path_sans_ext
 #' @rdname prefix
 #'
 #' @examples
@@ -73,25 +76,82 @@ chooseCRANmirror2 <- function() {
 #' @name suffix
 #' @rdname prefix
 .suffix <- function(f, suffix = "") {
-  file.path(dirname(f), paste0(tools::file_path_sans_ext(basename(f)), suffix,
-                               ".", tools::file_ext(f)))
+  file.path(dirname(f), paste0(filePathSansExt(basename(f)), suffix,
+                               ".", fileExt(f)))
 }
 
-#' Identify which formals to a function are not in the current ...
+#' Get a unique name for a given study area
 #'
-#' This is for advanced use.
+#' Digest a spatial object to get a unique character string (hash) of the study area.
+#' Use \code{.suffix()} to append the hash to a filename, e.g., when using \code{filename2} in \code{prepInputs}.
+#'
+#' @param studyArea Spatial object.
+#' @param ... Other arguments (not currently used)
+#'
+#' @export
+#' @importFrom digest digest
+setGeneric("studyAreaName", function(studyArea, ...) {
+  standardGeneric("studyAreaName")
+})
+
+#' @export
+#' @rdname studyAreaName
+setMethod(
+  "studyAreaName",
+  signature = "SpatialPolygonsDataFrame",
+  definition = function(studyArea, ...) {
+    studyArea <- studyArea[, -c(1:ncol(studyArea))]
+    studyArea <- as(studyArea, "SpatialPolygons")
+    studyAreaName(studyArea, ...)
+  })
+
+#' @export
+#' @rdname studyAreaName
+setMethod(
+  "studyAreaName",
+  signature = "ANY",
+  definition = function(studyArea, ...) {
+    if (is(studyArea, "sf")) {
+      if (requireNamespace("sf")) {
+        studyArea <- sf::st_geometry(studyArea)
+      }
+    }
+    if (!(is(studyArea, "spatialClasses") || is(studyArea, "sfc"))) {
+      stop("studyAreaName expects a spatialClasses object")
+    }
+    digest(studyArea, algo = "xxhash64") ## TODO: use `...` to pass `algo`
+  })
+
+
+#' Identify which formals to a function are not in the current \code{...}
+#'
+#' Advanced use.
+#'
 #' @keywords internal
 #' @export
 #' @param fun A function
 #' @param ... The ... from inside a function. Will be ignored if \code{dots} is
 #'        provided explicitly.
-#' @param dots Optional. If this is provided via say dots = list(...),
+#' @param dots Optional. If this is provided via say \code{dots = list(...)},
 #'             then this will cause the \code{...} to be ignored.
-.formalsNotInCurrentDots <- function(fun, ..., dots) {
+#' @param formalNames Optional character vector. If provided then it will override the \code{fun}
+.formalsNotInCurrentDots <- function(fun, ..., dots, formalNames, signature = character()) {
+  if (is.character(fun)) {
+    fun <- get(fun, mode = "function", envir = parent.frame())
+  }
+
+  if (missing(formalNames))
+    if (isS4(fun)) {
+      forms <- methodFormals(fun, signature = signature, envir = parent.frame())
+      formalNames <- names(forms)
+    } else {
+      formalNames <- names(formals(fun))
+    }
+
   if (!missing(dots)) {
-    out <- names(dots)[!(names(dots) %in% names(formals(fun)))]
+    out <- names(dots)[!(names(dots) %in% formalNames)]
   } else {
-    out <- names(list(...))[!(names(list(...)) %in% names(formals(fun)))]
+    out <- names(list(...))[!(names(list(...)) %in% formalNames)]
   }
   out
 }
@@ -107,7 +167,7 @@ rndstr <- function(n = 1, len = 8) {
 #' Alternative to \code{interactive()} for unit testing
 #'
 #' This is a suggestion from
-#' \url{https://www.mango-solutions.com/blog/testing-without-the-internet-using-mock-functions}
+#' \url{https://github.com/MangoTheCat/blog-with-mock/blob/master/Blogpost1.Rmd}
 #' as a way to test interactive code in unit tests. Basically, in the unit tests,
 #' we use \code{testthat::with_mock}, and inside that we redefine \code{isInteractive}
 #' just for the test. In all other times, this returns the same things as
@@ -123,7 +183,7 @@ rndstr <- function(n = 1, len = 8) {
 #'   # Test clearCache -- has an internal isInteractive() call
 #'   clearCache(tmpdir, ask = FALSE)
 #'   })
-#'   }
+#' }
 isInteractive <- function() interactive()
 
 #' A version of \code{base::basename} that is \code{NULL} resistant
@@ -150,18 +210,41 @@ basename2 <- function(x) {
 #' @details
 #' Based on \url{https://github.com/jennybc/googlesheets/issues/219#issuecomment-195218525}.
 #'
-#' @param expr     Expression to run.
+#' @param expr     Quoted expression to run, i.e., \code{quote(...)}
 #' @param retries  Numeric. The maximum number of retries.
+#' @param envir    The environment in which to evaluate the quoted expression, default
+#'   to \code{parent.frame(1)}
+#' @param exponentialDecayBase Numeric > 1.0. The delay between
+#'   successive retries will be \code{runif(1, min = 0, max = exponentialDecayBase ^ i - 1)}
+#'   where \code{i} is the retry number (i.e., follows \code{seq_len(retries)})
 #' @param silent   Logical indicating whether to \code{try} silently.
+#' @param exprBetween Another expression that should be run after a failed attempt
+#'   of the `expr`. It must include an assignment operator, specifying what
+#'   object (that is used in `expr`) will be updated prior to running
+#'   the `expr` again.
 #'
 #' @export
-retry <- function(expr, retries = 5, silent = FALSE) {
+retry <- function(expr, envir = parent.frame(), retries = 5,
+                  exponentialDecayBase = 1.3, silent = TRUE,
+                  exprBetween = NULL) {
+  if (exponentialDecayBase < 1)
+    stop("exponentialDecayBase must be equal to or greater than 1")
   for (i in seq_len(retries)) {
-    result <- try(expr = expr, silent = silent)
+    if (!(is.call(expr) || is.name(expr))) warning("expr is not a quoted expression")
+    result <- try(expr = eval(expr, envir = envir), silent = silent)
     if (inherits(result, "try-error")) {
-      backoff <- runif(n = 1, min = 0, max = 2^i - 1)
-      if (backoff > 3)
+      if (!is.null(exprBetween)) {
+        if (!identical(as.character(exprBetween[[1]]), "<-"))
+          stop("exprBetween must have an assignment operator <- with a object on",
+               "the LHS that is used on the RHS of expr ")
+        objName <- as.character(exprBetween[[2]])
+        result <- try(expr = eval(exprBetween, envir = envir), silent = silent)
+        assign(objName, result, envir = envir)
+      }
+      backoff <- sample(1:1000/1000, size = 1) * (exponentialDecayBase^i - 1)
+      if (backoff > 3) {
         message("Waiting for ", round(backoff, 1), " seconds to retry; the attempt is failing")
+      }
       Sys.sleep(backoff)
     } else {
       break
@@ -169,7 +252,7 @@ retry <- function(expr, retries = 5, silent = FALSE) {
   }
 
   if (inherits(result, "try-error")) {
-    stop("Failed after ", retries, " attempts.")
+    stop(result, "\nFailed after ", retries, " attempts.")
   } else {
     return(result)
   }
@@ -180,3 +263,194 @@ retry <- function(expr, retries = 5, silent = FALSE) {
 #' This is used so that unit tests can override this using \code{testthat::with_mock}.
 #' @keywords internal
 isWindows <- function() identical(.Platform$OS.type, "windows")
+
+#' @keywords internal
+isMac <- function() identical(tolower(Sys.info()["sysname"]), "darwin")
+
+#' Provide standard messaging for missing package dependencies
+#'
+#' This provides a standard message format for missing packages, e.g.,
+#' detected via \code{requireNamespace}.
+#'
+#' @export
+#' @param pkg Character string indicating name of package required
+#' @param minVersion Character string indicating minimum version of package
+#'   that is needed
+#' @param messageStart A character string with a prefix of message to provide
+#' @param stopOnFALSE Logical. If \code{TRUE}, this function will create an
+#'   error (i.e., \code{stop}) if the function returns \code{FALSE}; otherwise
+#'   it simply returns \code{FALSE}
+.requireNamespace <- function(pkg = "methods", minVersion = NULL,
+                              stopOnFALSE = FALSE,
+                              messageStart = paste0(pkg, if (!is.null(minVersion))
+                                paste0("(>=", minVersion, ")"), " is required. Try: ")) {
+  need <- FALSE
+  if (suppressWarnings(!requireNamespace(pkg, quietly = TRUE))) {
+    need <- TRUE
+  } else {
+    if (isTRUE(packageVersion(pkg) < minVersion))
+      need <- TRUE
+  }
+  if (isTRUE(stopOnFALSE) && isTRUE(need))
+    stop(requireNamespaceMsg(pkg))
+  !need
+}
+
+#' Use message to print a clean square data structure
+#'
+#' Sends to \code{message}, but in a structured way so that a data.frame-like can
+#' be cleanly sent to messaging.
+#'
+#' @param df A data.frame, data.table, matrix
+#' @param round An optional numeric to pass to \code{round}
+#' @param colour Passed to \code{getFromNamespace(colour, ns = "crayon")},
+#'   so any colour that \code{crayon} can use
+#' @param colnames Logical or \code{NULL}. If \code{TRUE}, then it will print
+#'   column names even if there aren't any in the \code{df} (i.e., they will)
+#'   be \code{V1} etc., \code{NULL} will print them if they exist, and \code{FALSE}
+#'   which will omit them.
+#'
+#' @export
+#' @importFrom data.table is.data.table as.data.table
+#' @importFrom utils capture.output
+messageDF <- function(df, round, colour = NULL, colnames = NULL) {
+  origColNames <- if (is.null(colnames) | isTRUE(colnames)) colnames(df) else NULL
+
+  if (is.matrix(df))
+    df <- as.data.frame(df)
+  if (!is.data.table(df)) {
+    df <- as.data.table(df)
+  }
+  df <- Copy(df)
+  skipColNames <- if (is.null(origColNames) & !isTRUE(colnames)) TRUE else FALSE
+  if (!missing(round)) {
+    isNum <- sapply(df, is.numeric)
+    isNum <- colnames(df)[isNum]
+    for (Col in isNum) {
+      set(df, NULL, Col, round(df[[Col]], round))
+    }
+  }
+  outMess <- capture.output(df)
+  if (skipColNames) outMess <- outMess[-1]
+  out <- lapply(outMess, function(x) {
+    if (!is.null(colour)) {
+      messageColoured(x, colour = colour)
+    } else {
+      message(x)
+    }
+  })
+}
+
+filePathSansExt <- function(x) {
+  sub("([^.]+)\\.[[:alnum:]]+$", "\\1", x)
+}
+
+fileExt <- function(x) {
+  pos <- regexpr("\\.([[:alnum:]]+)$", x)
+  ifelse(pos > -1L, substring(x, pos + 1L), "")
+}
+
+isDirectory <- function(pathnames) {
+  keep <- is.character(pathnames)
+  if (length(pathnames) == 0) return(logical())
+  if (isFALSE(keep)) stop("pathnames must be character")
+  origPn <- pathnames
+  pathnames <- normPath(pathnames[keep])
+  id <- dir.exists(pathnames)
+  id[id] <- file.info(pathnames[id])$isdir
+  names(id) <- origPn
+  id
+}
+
+isFile <- function(pathnames) {
+  keep <- is.character(pathnames)
+  if (isFALSE(keep)) stop("pathnames must be character")
+  origPn <- pathnames
+  pathnames <- normPath(pathnames[keep])
+  iF <- file.exists(pathnames)
+  iF[iF] <- !file.info(pathnames[iF])$isdir
+  names(iF) <- origPn
+  iF
+}
+
+isAbsolutePath <- function(pathnames) {
+  # modified slightly from R.utils::isAbsolutePath
+  keep <- is.character(pathnames)
+  if (isFALSE(keep)) stop("pathnames must be character")
+  origPn <- pathnames
+  nPathnames <- length(pathnames)
+  if (nPathnames == 0L)
+    return(logical(0L))
+  if (nPathnames > 1L) {
+    res <- sapply(pathnames, FUN = isAbsolutePath)
+    return(res)
+  }
+  if (is.na(pathnames))
+    return(FALSE)
+  if (regexpr("^~", pathnames) != -1L)
+    return(TRUE)
+  if (regexpr("^.:(/|\\\\)", pathnames) != -1L)
+    return(TRUE)
+  components <- strsplit(pathnames, split = "[/\\]")[[1L]]
+  if (length(components) == 0L)
+    return(FALSE)
+  (components[1L] == "")
+}
+
+# This is so that we don't need to import from backports
+isFALSE <- function(x) is.logical(x) && length(x) == 1L && !is.na(x) && !x
+
+
+messagePrepInputs <- function(...) {
+  messageColoured(..., colour = getOption("reproducible.messageColourPrepInputs"))
+}
+
+messageCache <- function(..., colour = getOption("reproducible.messageColourCache")) {
+  messageColoured(..., colour = colour)
+}
+
+messageQuestion <- function(..., verboseLevel = 0) {
+  # force this message to print
+  messageColoured(..., colour = getOption("reproducible.messageColourQuestion"),
+                  verboseLevel = verboseLevel, verbose = 0)
+}
+
+messageColoured <- function(..., colour = NULL, verboseLevel = 1,
+                            verbose = getOption("reproducible.verbose", 1)) {
+  if (isTRUE(verboseLevel <= verbose)) {
+    needCrayon <- FALSE
+    if (!is.null(colour)) {
+      if (is.character(colour))
+        needCrayon <- TRUE
+    }
+    if (needCrayon && requireNamespace("crayon", quietly = TRUE)) {
+      message(getFromNamespace(colour, "crayon")(paste0(...)))
+    } else {
+      if (!isTRUE(.pkgEnv$.checkedCrayon) && !.requireNamespace("crayon")) {
+        message("To add colours to messages, install.packages('crayon')")
+        .pkgEnv$.checkedCrayon <- TRUE
+      }
+      message(paste0(...))
+    }
+  }
+
+}
+
+
+
+methodFormals <- function(fun, signature = character(), envir = parent.frame()) {
+  if (is.character(fun))
+    fun <- get(fun, mode = "function", envir = envir)
+
+  fdef <- getGeneric(fun)
+  method <- selectMethod(fdef, signature)
+  genFormals <- base::formals(fdef)
+  b <- body(method)
+  if(is(b, "{") && is(b[[2]], "<-") && identical(b[[2]][[2]], as.name(".local"))) {
+    local <- eval(b[[2]][[3]])
+    if(is.function(local))
+      return(formals(local))
+    warning("Expected a .local assignment to be a function. Corrupted method?")
+  }
+  genFormals
+}

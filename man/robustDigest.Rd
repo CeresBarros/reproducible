@@ -3,7 +3,6 @@
 \name{.robustDigest}
 \alias{.robustDigest}
 \alias{.robustDigest,ANY-method}
-\alias{.robustDigest,cluster-method}
 \alias{.robustDigest,function-method}
 \alias{.robustDigest,expression-method}
 \alias{.robustDigest,character-method}
@@ -17,7 +16,7 @@
 \usage{
 .robustDigest(
   object,
-  .objects,
+  .objects = NULL,
   length = getOption("reproducible.length", Inf),
   algo = "xxhash64",
   quick = getOption("reproducible.quick", FALSE),
@@ -26,8 +25,6 @@
 )
 
 \S4method{.robustDigest}{ANY}(object, .objects, length, algo, quick, classOptions)
-
-\S4method{.robustDigest}{cluster}(object, .objects, length, algo, quick, classOptions)
 
 \S4method{.robustDigest}{`function`}(object, .objects, length, algo, quick, classOptions)
 
@@ -51,46 +48,33 @@
 \item{object}{an object to digest.}
 
 \item{.objects}{Character vector of objects to be digested. This is only applicable
-if there is a list, environment (or similar) named objects
+if there is a list, environment (or similar) with named objects
 within it. Only this/these objects will be considered for caching,
 i.e., only use a subset of
-the list, environment or similar objects.}
+the list, environment or similar objects. In the case of nested list-type
+objects, this will only be applied outermost first.}
 
 \item{length}{Numeric. If the element passed to Cache is a \code{Path} class
 object (from e.g., \code{asPath(filename)}) or it is a \code{Raster} with
 file-backing, then this will be
 passed to \code{digest::digest}, essentially limiting the number of bytes
 to digest (for speed). This will only be used if \code{quick = FALSE}.
-Default is \code{getOption("reproducible.length")},
-which is set to \code{Inf}.}
+Default is \code{getOption("reproducible.length")}, which is set to \code{Inf}.}
 
 \item{algo}{The algorithms to be used; currently available choices are
     \code{md5}, which is also the default, \code{sha1}, \code{crc32},
     \code{sha256}, \code{sha512}, \code{xxhash32}, \code{xxhash64},
-    \code{murmur32} and \code{spookyhash}.}
+    \code{murmur32}, \code{spookyhash} and \code{blake3}.}
 
-\item{quick}{Logical. If \code{TRUE},
-little or no disk-based information will be assessed, i.e., mostly its
-memory content. This is relevant for objects of class \code{character},
-\code{Path} and \code{Raster} currently. For class \code{character}, it is ambiguous
-whether this represents a character string or a vector of file paths. The function
-will assess if it is a path to a file or directory first. If not, it will treat
-the object as a character string. If it is known that character strings should
-not be treated as paths, then \code{quick = TRUE} will be much faster, with no loss
-of information. If it is file or directory, then it will digest the file content,
-or \code{basename(object)}. For class \code{Path} objects, the file's metadata
-(i.e., filename and file size)
-will be hashed instead of the file contents if \code{quick = TRUE}.
-If set to \code{FALSE} (default),
-the contents of the file(s) are hashed.
-If \code{quick = TRUE}, \code{length} is ignored. \code{Raster} objects are treated
-as paths, if they are file-backed.}
+\item{quick}{Logical or character. If \code{TRUE},
+no disk-based information will be assessed, i.e., only
+memory content. See Details section about \code{quick} in \code{\link{Cache}}.}
 
 \item{classOptions}{Optional list. This will pass into \code{.robustDigest} for
 specific classes. Should be options that the \code{.robustDigest} knows what
 to do with.}
 
-\item{...}{Arguments of \code{FUN} function .}
+\item{...}{Arguments passed to \code{FUN}}
 
 \item{objects}{Optional character vector indicating which objects are to
 be considered while making digestible. This argument is not used
@@ -102,29 +86,28 @@ argument is the \code{simList} class from \code{SpaDES.core}.}
 A hash i.e., digest of the object passed in.
 }
 \description{
-Not all aspects of R objects are captured by current hashing tools in R (e.g.
-\code{digest::digest}, \code{knitr} caching,
-\code{archivist::cache}). This is mostly because many objects have "transient"
-(e.g., functions have environments), or "disk-backed" features. Since
-the goal of using reproducibility is to have tools that are not session specific,
-this function
-attempts to strip all session specific information so that the digest
-works between sessions and operating systems. It is tested under many
-conditions and object types, there are bound to be others that don't
+Not all aspects of R objects are captured by current hashing tools in R
+(e.g. \code{digest::digest}, \code{knitr} caching, \code{archivist::cache}).
+This is mostly because many objects have "transient"
+(e.g., functions have environments), or "disk-backed" features.
+Since the goal of using reproducibility is to have tools that are not session specific,
+this function attempts to strip all session specific information so that the digest
+works between sessions and operating systems.
+It is tested under many conditions and object types, there are bound to be others that don't
 work correctly.
 }
 \section{Classes}{
 
 
-\code{Raster*} objects have the potential for disk-backed storage.
-If the object in the R session is cached using \code{archivist::cache}, only
-the header component will be assessed for caching. Thus, objects like this
-require more work. Also, because \code{Raster*} can have a built-in representation
-for having their data content located on disk, this format will be maintained if the
-raster already is file-backed, i.e., to create \code{.tif} or \code{.grd} backed rasters,
-use \code{writeRaster} first, then Cache. The .tif or .grd will be copied to the "raster"
-subdirectory of the \code{cacheRepo}.
-Their RAM representation (as an R object) will still be in the usual \file{gallery/} directory.
+\code{Raster*} objects have the potential for disk-backed storage, thus, require more work.
+Also, because \code{Raster*} can have a built-in representation for having their data content
+located on disk, this format will be maintained if the raster already is file-backed,
+i.e., to create \code{.tif} or \code{.grd} backed rasters, use \code{writeRaster} first,
+then \code{Cache}.
+The \file{.tif} or \file{.grd} will be copied to the \file{raster/} subdirectory of the
+\code{cacheRepo}.
+Their RAM representation (as an R object) will still be in the usual  \file{cacheOutputs/}
+(or formerly \file{gallery/}) directory.
 For \code{inMemory} raster objects, they will remain as binary \code{.RData} files.
 
 Functions (which are contained within environments) are
@@ -184,9 +167,6 @@ digest::digest(r2) # different
 .robustDigest(r)
 .robustDigest(r1) # different
 
-}
-\seealso{
-\code{\link[archivist]{cache}}.
 }
 \author{
 Eliot McIntire

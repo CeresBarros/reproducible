@@ -3,20 +3,29 @@
 \name{cropInputs}
 \alias{cropInputs}
 \alias{cropInputs.default}
-\alias{cropInputs.spatialObjects}
+\alias{cropInputs.spatialClasses}
 \alias{cropInputs.sf}
 \title{Crop a \code{Spatial*} or \code{Raster*} object}
 \usage{
-cropInputs(x, studyArea, rasterToMatch, ...)
+cropInputs(
+  x,
+  studyArea,
+  rasterToMatch,
+  verbose = getOption("reproducible.verbose", 1),
+  ...
+)
 
 \method{cropInputs}{default}(x, studyArea, rasterToMatch, ...)
 
-\method{cropInputs}{spatialObjects}(
+\method{cropInputs}{spatialClasses}(
   x,
   studyArea = NULL,
   rasterToMatch = NULL,
+  verbose = getOption("reproducible.verbose", 1),
   extentToMatch = NULL,
   extentCRS = NULL,
+  useGDAL = getOption("reproducible.useGDAL", TRUE),
+  useCache = getOption("reproducible.useCache", FALSE),
   ...
 )
 
@@ -24,8 +33,10 @@ cropInputs(x, studyArea, rasterToMatch, ...)
   x,
   studyArea = NULL,
   rasterToMatch = NULL,
+  verbose = getOption("reproducible.verbose", 1),
   extentToMatch = NULL,
   extentCRS = NULL,
+  useCache = getOption("reproducible.useCache", FALSE),
   ...
 )
 }
@@ -43,7 +54,13 @@ the extent of desired outcome) and reprojecting (including changing the
 resolution and projection).
 See details in \code{\link{postProcess}}.}
 
-\item{...}{Passed to raster::crop}
+\item{verbose}{Numeric, -1 silent (where possible), 0 being very quiet,
+1 showing more messaging, 2 being more messaging, etc.
+Default is 1. Above 3 will output much more information about the internals of
+Caching, which may help diagnose Caching challenges. Can set globally with an
+option, e.g., \code{options('reproducible.verbose' = 0) to reduce to minimal}}
+
+\item{...}{Passed to \code{raster::crop}}
 
 \item{extentToMatch}{Optional. Can pass an extent here and a \code{crs} to
 \code{extentCRS} instead of \code{rasterToMatch}. These
@@ -52,6 +69,19 @@ passed.}
 
 \item{extentCRS}{Optional. Can pass a \code{crs} here with an extent to
 \code{extentTomatch} instead of \code{rasterToMatch}}
+
+\item{useGDAL}{Logical or \code{"force"}.
+Defaults to \code{getOption("reproducible.useGDAL" = TRUE)}.
+If \code{TRUE}, then this function will use \code{gdalwarp} only when not
+small enough to fit in memory (i.e., \emph{if the operation fails} the
+\code{raster::canProcessInMemory(x, 3)} test). Using \code{gdalwarp} will
+usually be faster than \code{raster::projectRaster}, the function used
+if this is \code{FALSE}. Since since the two options use different algorithms,
+there may be different projection results. \code{"force"} will cause it to
+use GDAL regardless of the memory test described here.}
+
+\item{useCache}{Logical, default \code{getOption("reproducible.useCache", FALSE)}, whether
+\code{Cache} is used internally.}
 }
 \description{
 This function can be used to crop or reproject module inputs from raw data.
@@ -69,7 +99,7 @@ coords1 <- structure(c(-123.98, -117.1, -80.2, -100, -123.98, 60.9, 67.73, 65.58
 Sr1 <- Polygon(coords1)
 Srs1 <- Polygons(list(Sr1), "s1")
 shpEcozone <- SpatialPolygons(list(Srs1), 1L)
-crs(shpEcozone) <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+crs(shpEcozone) <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
 
 # make a "study area" that is subset of larger dataset
 coords <- structure(c(-118.98, -116.1, -99.2, -106, -118.98, 59.9, 65.73, 63.58, 54.79, 59.9),
@@ -77,12 +107,11 @@ coords <- structure(c(-118.98, -116.1, -99.2, -106, -118.98, 59.9, 65.73, 63.58,
 Sr1 <- Polygon(coords)
 Srs1 <- Polygons(list(Sr1), "s1")
 StudyArea <- SpatialPolygons(list(Srs1), 1L)
-crs(StudyArea) <- "+init=epsg:4326 +proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
-#'
-#'
+crs(StudyArea) <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+
 ##########
 shpEcozonePostProcessed <- postProcess(shpEcozone, studyArea = StudyArea)
-#'
+
 # Try manually, individual pieces
 shpEcozoneReprojected <- projectInputs(shpEcozone, StudyArea)
 shpEcozoneCropped <- cropInputs(shpEcozone, StudyArea)

@@ -1,5 +1,6 @@
 .CacheVerboseFn1 <- function(preDigest, fnDetails,
-                             startHashTime, modifiedDots, dotPipe, quick) {
+                             startHashTime, modifiedDots, dotPipe, quick,
+                             verbose = getOption("reproducible.verbose", 1)) {
   preDigestUnlist <- .unlistToCharacter(preDigest, 4)
   endHashTime <- Sys.time()
   verboseDF <- data.frame(
@@ -41,8 +42,8 @@
     .reproEnv$hashDetails <- hashDetails
     on.exit({
       assign("hashDetailsAll", .reproEnv$hashDetails, envir = .reproEnv)
-      print(.reproEnv$hashDetails)
-      message("The hashing details are available from .reproEnv$hashDetails")
+      messageDF(.reproEnv$hashDetails, colour = "blue")
+      messageCache("The hashing details are available from .reproEnv$hashDetails", verbose = verbose)
       rm("hashDetails", envir = .reproEnv)
     }, add = TRUE)
   }
@@ -95,7 +96,6 @@
 }
 
 .CacheFn1 <- function(FUN, scalls) {
-
   if (!is(FUN, "function")) {
     # scalls <- sys.calls()
     if (any(startsWith(as.character(scalls), "function_list[[k"))) {
@@ -130,8 +130,10 @@
 }
 
 
-.CacheSideEffectFn1 <- function(output, sideEffect, cacheRepo, quick, algo, FUN, ...) {
-  message("sideEffect argument is poorly tested. It may not function as desired")
+.CacheSideEffectFn1 <- function(output, sideEffect, cacheRepo, quick, algo, FUN,
+                                verbose = getOption("reproducible.verbose", 1), ...) {
+  messageCache("sideEffect argument is poorly tested. It may not function as desired")
+  # browser(expr = exists("sideE"))
   needDwd <- logical(0)
   fromCopy <- character(0)
   cachedChcksum <- attributes(output)$chcksumFiles
@@ -144,7 +146,7 @@
       if (file.exists(chcksumPath)) {
         checkDigest <- TRUE
       } else {
-        checkCopy <- file.path(cacheRepo, "gallery", basename(chcksumName))
+        checkCopy <- file.path(CacheStorageDir(cacheRepo), basename(chcksumName))
         if (file.exists(checkCopy)) {
           chcksumPath <- checkCopy
           checkDigest <- TRUE
@@ -181,7 +183,7 @@
     }
     #}
   } else {
-    message("  There was no record of files in sideEffects")
+    messageCache("  There was no record of files in sideEffects", verbose = verbose)
   }
 
   if (any(needDwd)) {
@@ -189,7 +191,7 @@
   }
 
   if (NROW(fromCopy)) {
-    repoTo <- file.path(cacheRepo, "gallery")
+    repoTo <- CacheStorageDir(cacheRepo)
     lapply(fromCopy, function(x) {
       file.copy(from = file.path(repoTo, basename(x)),
                 to = file.path(cacheRepo), recursive = TRUE)
@@ -199,6 +201,7 @@
 
 .CacheSideEffectFn2 <- function(sideEffect, cacheRepo, priorRepo, algo, output,
                                 makeCopy, quick) {
+  # browser(expr = exists("sideE"))
   if (isTRUE(sideEffect)) {
     postRepo <- list.files(cacheRepo, full.names = TRUE)
   } else {
@@ -225,8 +228,9 @@
     if (!identical(attr(output, "chcksumFiles"), paste0(cacheName, ":", cachecurFlst)))
       stop("There is an unknown error 01")
 
+    # browser(expr = exists("sideE"))
     if (makeCopy) {
-      repoTo <- file.path(cacheRepo, "gallery")
+      repoTo <- CacheStorageDir(cacheRepo)
       checkPath(repoTo, create = TRUE)
       lapply(dwdFlst, function(x) {
         file.copy(from = x, to = file.path(repoTo), recursive = TRUE)
@@ -236,52 +240,36 @@
   return(output)
 }
 
-.addTagsRepo <- function(isInRepo, cacheRepo, lastOne) {
-  written <- 0
-  while (written >= 0) {
-    saved <- suppressWarnings(try(silent = TRUE,
-                                  addTagsRepo(isInRepo$artifact[lastOne],
-                                              repoDir = cacheRepo,
-                                              tags = paste0("accessed:", Sys.time()))))
-    written <- if (is(saved, "try-error")) {
-      Sys.sleep(sum(runif(written + 1,0.05, 0.1)))
-      written + 1
-    } else {
-      -1
-    }
-  }
-
-}
-
 .getFromRepo <- function(FUN, isInRepo, notOlderThan, lastOne, cacheRepo, fnDetails,
                          modifiedDots, debugCache, verbose, sideEffect, quick,
-                         algo, preDigest, startCacheTime, ...) {
-
-  if (verbose > 1) {
+                         algo, preDigest, startCacheTime,
+                         drv = getOption("reproducible.drv", RSQLite::SQLite()),
+                         conn = getOption("reproducible.conn", NULL), ...) {
+  if (verbose > 3) {
     startLoadTime <- Sys.time()
   }
 
+  cacheObj <- isInRepo[[.cacheTableHashColName()]][lastOne]
+
   fromMemoise <- NA
   if (getOption("reproducible.useMemoise")) {
-    fromMemoise <-
-      if (memoise::has_cache(.loadFromLocalRepoMem)(isInRepo$artifact[lastOne],
-                                                    repoDir = cacheRepo, value = TRUE)) {
-        TRUE
-      } else {
-        FALSE
-      }
-    loadFromMgs <- "Loading from memoise version of repo"
-    output <- .loadFromLocalRepoMem(isInRepo$artifact[lastOne],
-                                    repoDir = cacheRepo, value = TRUE)
+    fromMemoise <- FALSE
+    if (!is.null(.pkgEnv[[cacheRepo]]))
+      if (exists(cacheObj, envir = .pkgEnv[[cacheRepo]]))
+        fromMemoise <- TRUE
+    loadFromMgs <- "Loading from memoised version of repo"
+    output <- .loadFromLocalRepoMem(md5hash = cacheObj, repoDir = cacheRepo, value = TRUE)
     output <- unmakeMemoisable(output)
     #if (is(output, "simList_")) output <- as(output, "simList")
   } else {
     loadFromMgs <- "Loading from repo"
-    output <- loadFromLocalRepo(isInRepo$artifact[lastOne],
-                                repoDir = cacheRepo, value = TRUE)
+    if (useDBI()) {
+      output <- loadFromCache(cacheRepo, isInRepo[[.cacheTableHashColName()[lastOne]]],
+                              drv = drv, conn = conn)
+    }
   }
 
-  if (verbose > 1) {
+  if (verbose > 3) {
     endLoadTime <- Sys.time()
     verboseDF <- data.frame(
       functionName = fnDetails$functionName,
@@ -297,15 +285,17 @@
   }
 
   # Class-specific message
-  .cacheMessage(output, fnDetails$functionName,
-                fromMemoise = fromMemoise)
+  # browser(expr = exists("dddd"))
+  .cacheMessage(output, fnDetails$functionName, fromMemoise = fromMemoise, verbose = verbose)
 
   # This is protected from multiple-write to SQL collisions
-  .addTagsRepo(isInRepo, cacheRepo, lastOne)
+  # .addTagsRepo(isInRepo, cacheRepo, lastOne, drv, conn = conn)
+  .addTagsRepo(cacheId = isInRepo[[.cacheTableHashColName()]][lastOne],
+               cachePath = cacheRepo, drv = drv, conn = conn)
 
+  # browser(expr = exists("._getFromRepo_1"))
   if (sideEffect != FALSE) {
-    #if(isTRUE(sideEffect)) {
-    .CacheSideEffectFn1(output, sideEffect, cacheRepo, quick, algo, FUN, ...)
+    .CacheSideEffectFn1(output, sideEffect, cacheRepo, quick, algo, FUN, verbose = verbose, ...)
   }
 
   # This allows for any class specific things
@@ -325,7 +315,7 @@
   #attr(output, ".Cache")$newCache <- FALSE
   if (!identical(attr(output, ".Cache")$newCache, FALSE)) stop("attributes are not correct 2")
 
-  if (verbose > 1) {
+  if (verbose > 3) {
     endCacheTime <- Sys.time()
     verboseDF <- data.frame(
       functionName = fnDetails$functionName,
@@ -340,10 +330,10 @@
   }
 
   # If it was a NULL, the cacheRepo stored it as "NULL" ... return it as NULL
-  if (is.character(output))
+  if (is.character(output)) {
     if (identical(as.character(output), "NULL"))
       output <- NULL
+  }
 
   return(output)
-
 }

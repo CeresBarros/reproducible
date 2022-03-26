@@ -1,28 +1,27 @@
 ################################################################################
 #' Create reproducible digests of objects in R
 #'
-#' Not all aspects of R objects are captured by current hashing tools in R (e.g.
-#' \code{digest::digest}, \code{knitr} caching,
-#' \code{archivist::cache}). This is mostly because many objects have "transient"
-#' (e.g., functions have environments), or "disk-backed" features. Since
-#' the goal of using reproducibility is to have tools that are not session specific,
-#' this function
-#' attempts to strip all session specific information so that the digest
-#' works between sessions and operating systems. It is tested under many
-#' conditions and object types, there are bound to be others that don't
+#' Not all aspects of R objects are captured by current hashing tools in R
+#' (e.g. \code{digest::digest}, \code{knitr} caching, \code{archivist::cache}).
+#' This is mostly because many objects have "transient"
+#' (e.g., functions have environments), or "disk-backed" features.
+#' Since the goal of using reproducibility is to have tools that are not session specific,
+#' this function attempts to strip all session specific information so that the digest
+#' works between sessions and operating systems.
+#' It is tested under many conditions and object types, there are bound to be others that don't
 #' work correctly.
 #'
 #' @section Classes:
 #'
-#' \code{Raster*} objects have the potential for disk-backed storage.
-#' If the object in the R session is cached using \code{archivist::cache}, only
-#' the header component will be assessed for caching. Thus, objects like this
-#' require more work. Also, because \code{Raster*} can have a built-in representation
-#' for having their data content located on disk, this format will be maintained if the
-#' raster already is file-backed, i.e., to create \code{.tif} or \code{.grd} backed rasters,
-#' use \code{writeRaster} first, then Cache. The .tif or .grd will be copied to the "raster"
-#' subdirectory of the \code{cacheRepo}.
-#' Their RAM representation (as an R object) will still be in the usual \file{gallery/} directory.
+#' \code{Raster*} objects have the potential for disk-backed storage, thus, require more work.
+#' Also, because \code{Raster*} can have a built-in representation for having their data content
+#' located on disk, this format will be maintained if the raster already is file-backed,
+#' i.e., to create \code{.tif} or \code{.grd} backed rasters, use \code{writeRaster} first,
+#' then \code{Cache}.
+#' The \file{.tif} or \file{.grd} will be copied to the \file{raster/} subdirectory of the
+#' \code{cacheRepo}.
+#' Their RAM representation (as an R object) will still be in the usual  \file{cacheOutputs/}
+#' (or formerly \file{gallery/}) directory.
 #' For \code{inMemory} raster objects, they will remain as binary \code{.RData} files.
 #'
 #' Functions (which are contained within environments) are
@@ -49,12 +48,9 @@
 #'
 #' @return A hash i.e., digest of the object passed in.
 #'
-#' @seealso \code{\link[archivist]{cache}}.
-#'
 #' @author Eliot McIntire
 #' @export
 #' @importFrom digest digest
-#' @importFrom fastdigest fastdigest
 #' @keywords internal
 #' @rdname robustDigest
 #' @examples
@@ -101,7 +97,7 @@
 #' .robustDigest(r)
 #' .robustDigest(r1) # different
 #'
-setGeneric(".robustDigest", function(object, .objects,
+setGeneric(".robustDigest", function(object, .objects = NULL,
                                      length = getOption("reproducible.length", Inf),
                                      algo = "xxhash64",
                                      quick = getOption("reproducible.quick", FALSE),
@@ -110,35 +106,27 @@ setGeneric(".robustDigest", function(object, .objects,
 })
 
 #' @rdname robustDigest
+#' @importFrom rlang eval_tidy
 #' @export
 setMethod(
   ".robustDigest",
   signature = "ANY",
   definition = function(object, .objects, length, algo, quick,
                         classOptions) {
+    # browser(expr = exists("._robustDigest_1"))
+    if (is(object, "quosure")) {# can't get this class from rlang via importClass rlang quosure
+      object <- eval_tidy(object)
+    }
+
+    if (is(object, "cluster")) {# can't get this class from rlang via importClass rlang quosure
+      out <- .doDigest(NULL, algo)
+      return(out)
+    }
+
     # passByReference -- while doing pass by reference attribute setting is faster, is
     #   may be wrong. This caused issue #115 -- now fixed because it doesn't do pass by reference
     object1 <- .removeCacheAtts(object, passByReference = FALSE)
-    if (isTRUE(getOption("reproducible.useNewDigestAlgorithm")))
-      digest(object1, algo = algo)
-    else
-      fastdigest(object1)
-})
-
-#' @import parallel
-setOldClass("cluster")
-
-#' @rdname robustDigest
-#' @export
-setMethod(
-  ".robustDigest",
-  signature = "cluster",
-  definition = function(object, .objects, length, algo, quick, classOptions) {
-    #object <- .removeCacheAtts(object)
-    if (isTRUE(getOption("reproducible.useNewDigestAlgorithm")))
-      digest(NULL, algo = algo)
-    else
-      fastdigest(NULL)
+    .doDigest(object1, algo)
 })
 
 #' @rdname robustDigest
@@ -169,32 +157,22 @@ setMethod(
 
     if (!quick) {
         if (any(unlist(lapply(object, file.exists)))) {
+          # browser(expr = exists("hhhh"))
           unlist(lapply(object, function(x) {
+            # browser(expr = exists("hhhh"))
             if (dir.exists(x)) {
-              if (isTRUE(getOption("reproducible.useNewDigestAlgorithm")))
-                digest(basename(x), algo = algo)
-              else
-                fastdigest(basename(x))
+              .doDigest(basename(x), algo)
             } else if (file.exists(x)) {
                 digest(file = x, length = length, algo = algo)
             } else {
-              if (isTRUE(getOption("reproducible.useNewDigestAlgorithm")))
-                digest(x, algo = algo)
-              else
-                fastdigest(x)
+              .doDigest(x, algo)
             }
           }))
         } else {
-          if (isTRUE(getOption("reproducible.useNewDigestAlgorithm")))
-            digest(object, algo = algo)
-          else
-            fastdigest(object)
+          .doDigest(object, algo = algo)
         }
       } else {
-        if (isTRUE(getOption("reproducible.useNewDigestAlgorithm")))
-          digest(object, algo = algo)
-        else
-          fastdigest(object)
+        .doDigest(object, algo = algo)
       }
 })
 
@@ -219,17 +197,11 @@ setMethod(
           digest::digest(file = x, length = length, algo = algo)
         } else {
           # just do file basename as a character string, if file does not exist
-          if (isTRUE(getOption("reproducible.useNewDigestAlgorithm")))
-            digest(.basenames(x, nParentDirs), algo = algo)
-          else
-            fastdigest(.basenames(x, nParentDirs))
+          .doDigest(.basenames(x, nParentDirs), algo = algo)
         }
       })
     } else {
-      if (isTRUE(getOption("reproducible.useNewDigestAlgorithm")))
-        digest(.basenames(object, nParentDirs), algo = algo)
-      else
-        fastdigest(.basenames(object, nParentDirs))
+      .doDigest(.basenames(object, nParentDirs), algo = algo)
     }
 })
 
@@ -252,6 +224,8 @@ setMethod(
   signature = "list",
   definition = function(object, .objects, length, algo, quick, classOptions) {
     object <- .removeCacheAtts(object)
+    # browser(expr = exists("._robustDigest_2"))
+    if (!is.null(.objects)) object <- object[.objects]
     lapply(.sortDotsUnderscoreFirst(object), function(x) {
       .robustDigest(object = x, .objects = .objects,
                    length = length,
@@ -267,10 +241,7 @@ setMethod(
   definition = function(object, .objects, length, algo, quick, classOptions) {
     #  Need a specific method for data.frame or else it get "list" method, which is wrong
     object <- .removeCacheAtts(object)
-    if (isTRUE(getOption("reproducible.useNewDigestAlgorithm")))
-      digest(object, algo = algo)
-    else
-      fastdigest(object)
+    .doDigest(object, algo = algo)
 })
 
 #' @rdname robustDigest
@@ -281,18 +252,24 @@ setMethod(
   definition = function(object, .objects, length, algo, quick, classOptions) {
     object <- .removeCacheAtts(object)
 
-    if (is(object, "RasterStack")) {
-      # have to do one file at a time with Stack
-      dig <- suppressWarnings(
-             lapply(object@layers, function(yy) {
-               .digestRasterLayer(yy, length = length, algo = algo, quick = quick)
-             })
-      )
+    if (getOption("reproducible.useNewDigestAlgorithm") < 2)  {
+      if (is(object, "RasterStack")) {
+        # have to do one file at a time with Stack
+        dig <- suppressWarnings(
+          lapply(object@layers, function(yy) {
+            .digestRasterLayer(yy, length = length, algo = algo, quick = quick)
+          })
+        )
+      } else {
+        # Brick and Layers have only one file
+        dig <- suppressWarnings(
+          .digestRasterLayer(object, length = length, algo = algo, quick = quick))
+      }
     } else {
-      # Brick and Layers have only one file
       dig <- suppressWarnings(
         .digestRasterLayer(object, length = length, algo = algo, quick = quick))
     }
+    dig <- .doDigest(unlist(dig))
     return(dig)
 })
 
@@ -324,10 +301,7 @@ setMethod(
     }
 
     #
-    if (isTRUE(getOption("reproducible.useNewDigestAlgorithm")))
-      digest(aaa, algo = algo)
-    else
-      fastdigest(aaa)
+    .doDigest(aaa, algo = algo)
 })
 
 .basenames <- function(object, nParentDirs) {
@@ -374,8 +348,36 @@ setMethod(
 .robustDigestFormatOnly <- function(object, .objects, length, algo, quick,
                                classOptions) {
   object <- .removeCacheAtts(object)
-  if (isTRUE(getOption("reproducible.useNewDigestAlgorithm")))
-    digest(format(object), algo = algo)
-  else
-    fastdigest(format(object))
+  .doDigest(format(object), algo = algo)
+}
+
+.doDigest <- function(x, algo, length = Inf, file,
+                      newAlgo = getOption("reproducible.useNewDigestAlgorithm"),
+                      cacheSpeed = getOption("reproducible.cacheSpeed", "slow")) {
+  if (missing(algo)) algo = formals(.robustDigest)$algo
+
+  out <- if (!missing(file)) {
+    digest::digest(file = x, algo = algo, length = length)
+  } else {
+    if (isTRUE(newAlgo > 0)) {
+      if (cacheSpeed == "fast") {
+        cacheSpeed <- 2L
+      } else if (cacheSpeed == "slow") {
+        cacheSpeed <- 1L
+      }
+    } else {
+      cacheSpeed <- 2L
+    }
+    out <- if (cacheSpeed == 1) {
+      digest(x, algo = algo)
+    } else if (cacheSpeed == 2) {
+      if (!requireNamespace("fastdigest", quietly = TRUE))
+        stop(requireNamespaceMsg("fastdigest", "to use options('reproducible.useNewDigestAlgorithm' = FALSE"))
+      fastdigest::fastdigest(x)
+    } else {
+      stop("options('reproducible.cacheSpeed') must be 1, 2, 'slow' or 'fast'")
+    }
+    out
+  }
+  out
 }

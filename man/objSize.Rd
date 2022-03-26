@@ -83,7 +83,7 @@ See Details for the special case of functions and their enclosing environments.
 }
 \details{
 For functions, a user can include the enclosing environment as described
-\url{https://www.r-bloggers.com/using-closures-as-objects-in-r/} and
+\url{https://www.r-bloggers.com/2015/03/using-closures-as-objects-in-r/} and
 \url{http://adv-r.had.co.nz/memory.html}.
 It is not entirely clear which estimate is better.
 However, if the enclosing environment is the \code{.GlobalEnv}, it will
@@ -115,7 +115,7 @@ objSize(prepInputs)     # the function, plus its enclosing environment
 os1 <- object.size(as.environment("package:reproducible"))
 os2 <- objSize(as.environment("package:reproducible"))
 (os1) # very small -- just the environment container
-sum(unlist(os2)) # around 31 MB, with all functions, objects
+sum(unlist(os2)) # around 13 MB, with all functions, objects
                  # and imported functions
 
 }

@@ -5,13 +5,16 @@ test_that("test Copy", {
   }, add = TRUE)
 
   ras <- raster(extent(0, 10, 0, 10), vals = 1)
-  ras <- writeRaster(ras, filename = tmpfile, overwrite = TRUE)
-  ras2 <- Copy(ras, tmpdir)
+  ras <- suppressWarningsSpecific(falseWarnings = proj6Warn,
+                                  writeRaster(ras, filename = tmpfile, overwrite = TRUE))
+  # This will make hardlink
+  ras2 <- suppressWarningsSpecific(Copy(ras, tmpdir), "NOT UPDATED FOR PROJ >= 6")
+
   expect_true(all.equal(ras2[], ras[]))
   expect_false(filename(ras2) == filename(ras))
 
   dt <- data.table(a = 1:2, b = rev(LETTERS[1:2]))
-  tmpdir <- normPath(file.path(tempdir(), "ras2"))
+  tmpdir <- normPath(tempdir2("ras2"))
   checkPath(tmpdir, create = TRUE); on.exit(unlink(tmpdir, recursive = TRUE), add = TRUE)
   li <- list(dt = dt, ras = ras, ras2 = ras2)
   li2 <- Copy(li, tmpdir)
@@ -37,9 +40,9 @@ test_that("test Copy", {
   ### environments
   dt <- data.table(a = 1:2, b = rev(LETTERS[1:2]))
   li <- list(dt = dt, ras = ras, ras2 = ras2)
-  li <- list2env(li, env = new.env())
+  li <- list2env(li, env = new.env(parent = emptyenv()))
 
-  tmpdir <- file.path(tempdir(), "ras3")
+  tmpdir <- tempdir2("ras3")
   li2 <- Copy(li, tmpdir)
 
   expect_true(all(unlist(lapply(names(li), function(i) {
@@ -62,12 +65,12 @@ test_that("test Copy", {
   ### Nested Environments
   dt <- data.table(a = 1:2, b = rev(LETTERS[1:2]))
   li <- list(dt = dt, ras = ras, ras2 = ras2)
-  env1 <- new.env()
-  env2 <- new.env()
+  env1 <- new.env(parent = emptyenv())
+  env2 <- new.env(parent = emptyenv())
   liEnv <- list2env(li, env = env1)
   liEnv[["env"]] <- li
 
-  tmpdir <- file.path(tempdir(), "ras3")
+  tmpdir <- tempdir2("ras3")
   liEnv2 <- Copy(liEnv, tmpdir)
 
   expect_true(all(unlist(lapply(names(liEnv[["env"]]), function(i) {
@@ -86,4 +89,15 @@ test_that("test Copy", {
   # data.table
   setkeyv(liEnv[["env"]][["dt"]], "b")
   expect_false(isTRUE(all.equal(liEnv[["env"]][["dt"]], liEnv2[["env"]][["dt"]])))
+
+  ###################
+  # This is an aside on testing whether the hard link can be messed with by overwrite
+  fn <- Filenames(ras)
+  ras3 <- raster(extent(0, 10, 0, 10), vals = 2)
+  ras3 <- suppressWarningsSpecific(writeRaster(ras3, filename = tmpfile, overwrite = TRUE),
+                                   "NOT UPDATED FOR PROJ >= 6")# overwrite the original
+  # The hardlink is not affected by "overwrite = TRUE" -- it is not by filename, but by file location
+  expect_true(all(ras2[] == 1))
+  ###################
+
 })

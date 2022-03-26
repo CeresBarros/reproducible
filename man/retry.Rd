@@ -4,14 +4,33 @@
 \alias{retry}
 \title{A wrapper around \code{try} that retries on failure}
 \usage{
-retry(expr, retries = 5, silent = FALSE)
+retry(
+  expr,
+  envir = parent.frame(),
+  retries = 5,
+  exponentialDecayBase = 1.3,
+  silent = TRUE,
+  exprBetween = NULL
+)
 }
 \arguments{
-\item{expr}{Expression to run.}
+\item{expr}{Quoted expression to run, i.e., \code{quote(...)}}
+
+\item{envir}{The environment in which to evaluate the quoted expression, default
+to \code{parent.frame(1)}}
 
 \item{retries}{Numeric. The maximum number of retries.}
 
+\item{exponentialDecayBase}{Numeric > 1.0. The delay between
+successive retries will be \code{runif(1, min = 0, max = exponentialDecayBase ^ i - 1)}
+where \code{i} is the retry number (i.e., follows \code{seq_len(retries)})}
+
 \item{silent}{Logical indicating whether to \code{try} silently.}
+
+\item{exprBetween}{Another expression that should be run after a failed attempt
+of the `expr`. It must include an assignment operator, specifying what
+object (that is used in `expr`) will be updated prior to running
+the `expr` again.}
 }
 \description{
 This is useful for functions that are "flaky", such as \code{curl}, which may fail for unknown

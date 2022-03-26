@@ -41,7 +41,7 @@
 #' os1 <- object.size(as.environment("package:reproducible"))
 #' os2 <- objSize(as.environment("package:reproducible"))
 #' (os1) # very small -- just the environment container
-#' sum(unlist(os2)) # around 31 MB, with all functions, objects
+#' sum(unlist(os2)) # around 13 MB, with all functions, objects
 #'                  # and imported functions
 #'
 objSize <- function(x, quick, enclosingEnvs, .prevEnvirs, ...) {
@@ -88,7 +88,7 @@ objSize.list <- function(x, quick = getOption("reproducible.quick", FALSE),
 objSize.environment <- function(x, quick = getOption("reproducible.quick", FALSE),
                                 enclosingEnvs = TRUE, .prevEnvirs = list(), ...) {
   xName <- deparse(substitute(x))
-  print(format(x))
+  # print(format(x))
   os <- objSize(as.list(x, all.names = TRUE), enclosingEnvs = enclosingEnvs,
                 .prevEnvirs = .prevEnvirs)
   if (length(os) > 0)
@@ -113,7 +113,7 @@ objSize.Path <- function(x, quick = getOption("reproducible.quick", FALSE),
 
 #' @details
 #' For functions, a user can include the enclosing environment as described
-#' \url{https://www.r-bloggers.com/using-closures-as-objects-in-r/} and
+#' \url{https://www.r-bloggers.com/2015/03/using-closures-as-objects-in-r/} and
 #' \url{http://adv-r.had.co.nz/memory.html}.
 #' It is not entirely clear which estimate is better.
 #' However, if the enclosing environment is the \code{.GlobalEnv}, it will
@@ -124,7 +124,7 @@ objSize.Path <- function(x, quick = getOption("reproducible.quick", FALSE),
 objSize.function <- function(x, quick = getOption("reproducible.quick", FALSE),
                              enclosingEnvs = TRUE, .prevEnvirs = list(), ...) {
   varName <- deparse(substitute(x))
-  if (isTRUE(enclosingEnvs) && (!identical(.GlobalEnv, environment(x)))) {
+  if (isTRUE(enclosingEnvs) && (!isTopLevelEnv(environment(x)))) {
     if (is.primitive(x)) {
       os <- list(object.size(x))
     } else {
@@ -158,8 +158,9 @@ objSizeSession <- function(sumLevel = Inf, enclosingEnvs = TRUE, .prevEnvirs = l
     # Update the object in the function so next lapply has access to the updated version
     .prevEnvirs <<- unique(append(.prevEnvirs, as.environment(x)))
     out <- if (!any(unlist(doneAlready))) {
-      try(objSize(as.environment(x), enclosingEnvs = enclosingEnvs,
-                  .prevEnvirs = .prevEnvirs))
+      tryCatch(objSize(as.environment(x), enclosingEnvs = enclosingEnvs,
+                  .prevEnvirs = .prevEnvirs), error = function(x) NULL,
+               warning = function(y) NULL)
     } else {
       NULL
     }
@@ -178,4 +179,24 @@ objSizeSession <- function(sumLevel = Inf, enclosingEnvs = TRUE, .prevEnvirs = l
   }
 
   return(os)
+}
+
+#' Determine if an environment is a top level environment
+#'
+#' Here, we define that as .GlobalEnv, any namespace, emptyenv,
+#' or baseenv. This is useful to determine the effective size
+#' of an R function, due to R including the objects from enclosing
+#' environments
+#'
+#' @param x Any environment
+#'
+#' @return
+#' A logical. \code{FALSE} if it is not one of the "Top Level Environments",
+#' \code{TRUE} otherwise.
+#' @export
+isTopLevelEnv <- function(x) {
+  identical(.GlobalEnv, x) ||
+       isNamespace(x) ||
+       identical(emptyenv(), x) ||
+       identical(baseenv(), x)
 }
